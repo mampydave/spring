@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: Déclaration des variables
-set "work_dir=C:\Users\itu\Pictures\Git"
+set "work_dir=C:\Users\ASUS\Documents\GitHub\spring"
 set "temp=%work_dir%\temp"
 set "web_apps=C:\tomcat\webapps"
 
