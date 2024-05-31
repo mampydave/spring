@@ -12,7 +12,7 @@ set "frame=%work_dir%\Framework"
 @REM set "src=%work_dir%\src"
 set "lib=%work_dir%\lib"
 
-set "war_name=Sprint2"
+set "war_name=sprint3"
 
 :: Effacer le dossier [temp]
 if exist "%temp%" (
