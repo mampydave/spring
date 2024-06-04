@@ -14,7 +14,6 @@ public class Mapping {
     }
 
 
-
     public String getClassName() {
         return className;
     }

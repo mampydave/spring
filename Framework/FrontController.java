@@ -50,7 +50,6 @@ public class FrontController extends HttpServlet {
         try {
             String requestUrl = request.getRequestURI().substring(request.getContextPath().length());
             Mapping mapping = hmap.get(requestUrl);
-          
             out.println("<html>");
             out.println("<head><title>Sprint2</title></head>");
             out.println("<body>");
@@ -61,6 +60,7 @@ public class FrontController extends HttpServlet {
                 Method method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
                 
                 out.println("<h1>URL: " + requestUrl + "</h1>");
+
                 out.println("<li>Class: " + mapping.getClassName() + ":");
                 out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
 
