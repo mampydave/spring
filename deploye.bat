@@ -4,6 +4,7 @@ setlocal enabledelayedexpansion
 :: Déclaration des variables
 set "work_dir=C:\Users\ASUS\Documents\GitHub\spring"
 set "temp=%work_dir%\temp"
+set "web=%work_dir%\web"
 set "web_apps=C:\tomcat\webapps"
 
 
@@ -24,7 +25,7 @@ mkdir "%temp%\WEB-INF\lib"
 mkdir "%temp%\WEB-INF\classes"
 
 xcopy "%config_xml%\*" "%temp%\WEB-INF"
-
+xcopy /s /y "%web%\*.*" "%temp%"
 @REM copier le jar
 xcopy /s /i "%lib%\*.jar" "%temp%\WEB-INF\lib"
 
