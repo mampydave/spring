@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.print.attribute.standard.RequestingUserName;
+
 
 public class FrontController extends HttpServlet { 
     Map<String, Mapping> hmap;
@@ -31,7 +33,7 @@ public class FrontController extends HttpServlet {
                         Object pris=trouver.getDeclaredConstructor().newInstance();
                         Get annotation = method.getAnnotation(Get.class);
                         String url = annotation.value();
-                        Mapping truest = new Mapping(trouver.getName(), method.getName(),(String) method.invoke(pris));
+                        Mapping truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris));
                     
                         hmap.put(url, truest);
                     }
@@ -48,28 +50,46 @@ public class FrontController extends HttpServlet {
         try {
             String requestUrl = request.getRequestURI().substring(request.getContextPath().length());
             Mapping mapping = hmap.get(requestUrl);
-            
-            // for (Map.Entry<String, Mapping> key : hmap.entrySet()) {
-                // out.println(hmap.containsKey("/yes"));
-                // out.println(test);                
-            // }
-
             out.println("<html>");
             out.println("<head><title>Sprint2</title></head>");
             out.println("<body>");
             if (mapping != null) {
-                out.println("<h1>URL: " + requestUrl + "</h1>");
-                    out.println("<li>Class: " + mapping.getClassName() + ":");
-                    out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
-                    out.println("<ul>Value of method: " + mapping.getValeur() + "</ul></li>");                    
+
+                Class<?> newc=Class.forName(mapping.getClassName());
+                Object controller=newc.getDeclaredConstructor().newInstance();
+                Method method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
                 
+                out.println("<h1>URL: " + requestUrl + "</h1>");
+
+                out.println("<li>Class: " + mapping.getClassName() + ":");
+                out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
+
+                Object result = method.invoke(controller);
+
+                if (result instanceof String) {
+                    out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
+                } else if (result instanceof ModelView) {
+                    ModelView model=(ModelView) result;
+                    String url=model.getUrl();
+                    HashMap<String, Object> data=model.getData();
+                    for(String key : data.keySet()){
+                        request.setAttribute(key,data.get(key));
+                    }
+                    RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+                    dispatcher.forward(request, response);
+                }else{
+                    out.println("Non reconnu");
+                }                
 
             } else {
                 out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
             }
             out.println("</body>");
             out.println("</html>");
-        } finally {
+        }catch (Exception e) {
+            System.out.println(e);
+        }
+         finally {
             out.close();
         }
     }
@@ -140,7 +160,4 @@ public class FrontController extends HttpServlet {
         return liste;
         
     }
- 
-
-
 }
