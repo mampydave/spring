@@ -18,80 +18,92 @@ import javax.print.attribute.standard.RequestingUserName;
 public class FrontController extends HttpServlet { 
     Map<String, Mapping> hmap;
 
+
     @Override
     public void init() throws ServletException {
-        hmap = new HashMap<>();
         try {
             ServletContext context = getServletContext();
-            String chemin = context.getInitParameter("scan");
-            List<String> controllers = scan(chemin); 
-            for (String controller : controllers) {
-                Class<?> trouver = Class.forName(controller);
-                Method[] methods = trouver.getDeclaredMethods();
-                for (Method method : methods) {             
-                    if (method.isAnnotationPresent(Get.class)) {
-                        Object pris=trouver.getDeclaredConstructor().newInstance();
-                        Get annotation = method.getAnnotation(Get.class);
-                        String url = annotation.value();
-                        Mapping truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris));
-                    
-                        hmap.put(url, truest);
-                    }
-                }
-            }
+            String chemin = context.getInitParameter("chemin");
+            this.setMapping(chemin);
         } catch (Exception e) {
             throw new ServletException("Erreur lors de l'initialisation du FrontController", e);
         }
     }
+    public void setMapping(String chemin) throws Exception {
+        hmap = new HashMap<>();
+    
+        ServletContext context = getServletContext();
+        // String chemin = context.getInitParameter("scan");
+        List<String> controllers = scan(chemin); 
+        boolean GetMethodPresent = false; // Flag pour vérifier les méthodes @GET
+        for (String controller : controllers) {
+            Class<?> trouver = Class.forName(controller);
+            Method[] methods = trouver.getDeclaredMethods();
+            for (Method method : methods) {             
+                if (method.isAnnotationPresent(Get.class)) {
+                    GetMethodPresent=true;
+                    Object pris=trouver.getDeclaredConstructor().newInstance();
+                    Get annotation = method.getAnnotation(Get.class);
+                    String url = annotation.value();
+                    Mapping truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris));
 
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+                    
+                    if (hmap.containsKey(url)) {
+                        throw new Exception("url existant ["+ url +"] dans "+ trouver.getName() + " et "+ hmap.get(url).getClassName());
+                    }
+                    hmap.put(url, truest);
+                }
+            }
+            if (!GetMethodPresent) {
+                throw new Exception("La classe " + trouver.getName() + " n'a aucune méthode annotée avec @GET."); 
+            }
+        }
+        
+    }
+
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, Exception {
         response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
-        try {
-            String requestUrl = request.getRequestURI().substring(request.getContextPath().length());
-            Mapping mapping = hmap.get(requestUrl);
-            out.println("<html>");
-            out.println("<head><title>Sprint2</title></head>");
-            out.println("<body>");
-            if (mapping != null) {
+        String requestUrl = request.getRequestURI().substring(request.getContextPath().length());
+        Mapping mapping = hmap.get(requestUrl);
+        
+        out.println("<html>");
+        out.println("<head><title>Sprint2</title></head>");
+        out.println("<body>");
+        if (mapping != null) {
 
-                Class<?> newc=Class.forName(mapping.getClassName());
-                Object controller=newc.getDeclaredConstructor().newInstance();
-                Method method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
-                
-                out.println("<h1>URL: " + requestUrl + "</h1>");
+            Class<?> newc=Class.forName(mapping.getClassName());
+            Object controller=newc.getDeclaredConstructor().newInstance();
+            Method method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
+            
+            out.println("<h1>URL: " + requestUrl + "</h1>");
+            out.println("<li>Class: " + mapping.getClassName() + ":");
+            out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
 
-                out.println("<li>Class: " + mapping.getClassName() + ":");
-                out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
+            Object result = method.invoke(controller);
 
-                Object result = method.invoke(controller);
+            if (result instanceof String) {
+                out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
+            } else if (result instanceof ModelView) {
+                ModelView model=(ModelView) result;
+                String url=model.getUrl();
+                HashMap<String, Object> data=model.getData();
+                for(String key : data.keySet()){
+                    request.setAttribute(key,data.get(key));
+                }
+                RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+                dispatcher.forward(request, response);
+            }else {
+                throw new Exception("invalide retour ou type de retour est non reconue");
+            }                
 
-                if (result instanceof String) {
-                    out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
-                } else if (result instanceof ModelView) {
-                    ModelView model=(ModelView) result;
-                    String url=model.getUrl();
-                    HashMap<String, Object> data=model.getData();
-                    for(String key : data.keySet()){
-                        request.setAttribute(key,data.get(key));
-                    }
-                    RequestDispatcher dispatcher = request.getRequestDispatcher(url);
-                    dispatcher.forward(request, response);
-                }else{
-                    out.println("Non reconnu");
-                }                
+        } else {
+            out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
 
-            } else {
-                out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
-            }
-            out.println("</body>");
-            out.println("</html>");
-        }catch (Exception e) {
-            System.out.println(e);
         }
-         finally {
-            out.close();
-        }
+        out.println("</body>");
+        out.println("</html>");
+       
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response){
