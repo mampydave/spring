@@ -5,17 +5,14 @@ import java.lang.reflect.Method;
 public class Mapping {
     private String className;
     private String methodName;
-    private String valeur;
+    private Object valeur;
 
-    public Mapping(String className, String methodName,String valeur) {
+    public Mapping(String className, String methodName,Object valeur) {
         this.className = className;
         this.methodName = methodName;
         this.valeur = valeur;
     }
 
-    public String getValeur() {
-        return valeur;
-    }
 
     public String getClassName() {
         return className;
@@ -23,5 +20,10 @@ public class Mapping {
 
     public String getMethodName() {
         return methodName;
+    }
+
+
+    public Object getValeur() {
+        return valeur;
     }
 }

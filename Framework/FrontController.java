@@ -46,6 +46,7 @@ public class FrontController extends HttpServlet {
                     Get annotation = method.getAnnotation(Get.class);
                     String url = annotation.value();
                     Mapping truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris));
+
                     
                     if (hmap.containsKey(url)) {
                         throw new Exception("url existant ["+ url +"] dans "+ trouver.getName() + " et "+ hmap.get(url).getClassName());
@@ -63,7 +64,6 @@ public class FrontController extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, Exception {
         response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
-       
         String requestUrl = request.getRequestURI().substring(request.getContextPath().length());
         Mapping mapping = hmap.get(requestUrl);
         
@@ -99,6 +99,7 @@ public class FrontController extends HttpServlet {
 
         } else {
             out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
+
         }
         out.println("</body>");
         out.println("</html>");
@@ -171,5 +172,4 @@ public class FrontController extends HttpServlet {
         return liste;
         
     }
- 
 }
