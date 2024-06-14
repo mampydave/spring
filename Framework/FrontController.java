@@ -22,8 +22,10 @@ public class FrontController extends HttpServlet {
     Map<String, Mapping> hmap;
     Map<String, List<String>> nbParam; 
 
+
     @Override
     public void init() throws ServletException {
+
         hmap = new HashMap<>();
         nbParam = new HashMap<>();
         try {
@@ -82,17 +84,17 @@ public class FrontController extends HttpServlet {
                         }
 
                     }
+                    hmap.put(url, truest);
                 }
                 if (!GetMethodPresent) {
                     throw new Exception("La classe " + trouver.getName() + " n'a aucune méthode annotée avec @GET."); 
                 }
-            }
-    
+            }    
         } catch (Exception e) {
             throw new ServletException("Erreur lors de l'initialisation du FrontController", e);
         }
+        
     }
-
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, Exception {
         response.setContentType("text/html;charset=UTF-8");
@@ -167,6 +169,7 @@ public class FrontController extends HttpServlet {
             out.println("<li>Class: " + mapping.getClassName() + ":");
             out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
 
+
             if (result instanceof String) {
                 out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
             } else if (result instanceof ModelView) {
@@ -176,6 +179,7 @@ public class FrontController extends HttpServlet {
                 for(String key : data.keySet()){
                     request.setAttribute(key,data.get(key));
                 }
+
 
                 // int lastIndex = url.lastIndexOf("/");
                 // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
