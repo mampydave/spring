@@ -20,14 +20,12 @@ import javax.print.attribute.standard.RequestingUserName;
 
 public class FrontController extends HttpServlet { 
     Map<String, Mapping> hmap;
-    Map<String, List<String>> nbParam; 
-
 
     @Override
     public void init() throws ServletException {
-
         hmap = new HashMap<>();
-        nbParam = new HashMap<>();
+
+        Mapping forhavingDefaultVal=new Mapping();
         try {
             ServletContext context = getServletContext();
             String chemin = context.getInitParameter("scan");
@@ -51,31 +49,54 @@ public class FrontController extends HttpServlet {
                         if (parameters.length>0) {
                             Object[] arguments = new Object[parameterTypes.length];
                             Annotation[][] parametreAnnot=method.getParameterAnnotations();
+                            
                             for (int i = 0; i < arguments.length; i++) {
                                 Class<?> paramType = parameterTypes[i];
-                                for(Annotation getting : parametreAnnot[i]){
-                                    if (getting instanceof Param) {
-                                        Param paramAnnotation = (Param) getting;
-                                        arguments[i] = paramAnnotation.value();
-                                        paramNames.add(paramType.getName());
-                                    }
-                               }
-                                // Class<?> paramType = parameterTypes[i];
-                                // if (paramType == int.class) {
-                                //     arguments[i] = 0; 
-                                // } else if (paramType == double.class) {
-                                //     arguments[i] = 0.0; 
-                                // } else if (paramType == String.class) {
-                                //     arguments[i] = ""; 
-                                // } else {
-                                //     arguments[i] = null; 
-                                // }
-                            }
-                            nbParam.put(method.getName(), paramNames);
-                            truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris,arguments));                    
-                            hmap.put(url, truest);
-                        }else{
 
+                                if (paramType.isPrimitive() || paramType.equals(String.class)) {
+                                                                
+                                    if (parametreAnnot[i].length>0) {
+                                        for(Annotation getting : parametreAnnot[i]){
+                                            if (getting instanceof Param) {
+                                                Param paramAnnotation = (Param) getting;
+                                                arguments[i] = forhavingDefaultVal.getDefaultValue(paramType);
+                                                paramNames.add(paramType.getName());
+
+                                            }
+                                        }                                    
+                                    }else{
+
+                                        arguments[i] = forhavingDefaultVal.getDefaultValue(paramType);
+                                        paramNames.add(paramType.getName());
+                                        // throw new Exception("nandalo tato @l condition"+method.getName()+"length annot"+parametreAnnot[i].length);
+                                    }
+                                }else if (!paramType.isPrimitive() && !paramType.equals(String.class)) {
+                                    Class ObjectParam1 = paramType;
+                                    Object instanciate=ObjectParam1.getDeclaredConstructor().newInstance();
+                                    Method[] listMethod=ObjectParam1.getDeclaredMethods(); 
+                                    for (Method meth : listMethod ) {
+
+                                        if (meth.getName().startsWith("set") && meth.getParameterCount()==1) {
+                                            Class<?>[] param=meth.getParameterTypes();
+
+                                            try {
+                                                meth.invoke(instanciate,forhavingDefaultVal.getDefaultValue(param[0]));
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }                                                    
+                                        }
+                                    }
+                                    arguments[i]=instanciate;
+                                    paramNames.add(paramType.getName());
+
+                                }
+
+                            }
+                            
+                            truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris,arguments),paramNames);                    
+                            hmap.put(url, truest);
+
+                        }else{
                             truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris));
                             if (hmap.containsKey(url)) {
                                 throw new Exception("url existant ["+ url +"] dans "+ trouver.getName() + " et "+ hmap.get(url).getClassName());
@@ -84,17 +105,17 @@ public class FrontController extends HttpServlet {
                         }
 
                     }
-                    hmap.put(url, truest);
                 }
                 if (!GetMethodPresent) {
                     throw new Exception("La classe " + trouver.getName() + " n'a aucune méthode annotée avec @GET."); 
                 }
-            }    
+            }
+    
         } catch (Exception e) {
             throw new ServletException("Erreur lors de l'initialisation du FrontController", e);
         }
-        
     }
+
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, Exception {
         response.setContentType("text/html;charset=UTF-8");
@@ -122,10 +143,12 @@ public class FrontController extends HttpServlet {
             if (parameterNames.hasMoreElements()) {
                 out.println(mapping.getMethodName());
                 
-                List<String> typeParametre= nbParam.get(mapping.getMethodName());
+
+                    List<String> typeParametre= mapping.getNbparam();
+                    out.println(typeParametre.size());
+
 
                     Class<?>[] pyte = new Class<?>[typeParametre.size()];
-                
                     for (int i = 0; i < typeParametre.size(); i++) {
                         out.println(typeParametre.get(i));
                         try {
@@ -142,22 +165,65 @@ public class FrontController extends HttpServlet {
                     method=controller.getClass().getDeclaredMethod(mapping.getMethodName(),pyte);
                     Annotation[][] parametreNotion=method.getParameterAnnotations();
                     
-                    Class<?>[] parameterTypes = method.getParameterTypes();
-                    Object[] arguments = new Object[parameterTypes.length];
+                    Object[] arguments = new Object[typeParametre.size()];
                         
-                    int i=0;    
-                    while (parameterNames.hasMoreElements()) {
+                        
+                    for (int i=0; i < typeParametre.size();i++) {
+                        
                         String paramName = parameterNames.nextElement();
+                        
+                        String[] knowObject=paramName.split("\\.");
+                        out.println(paramName);
+                        out.print(knowObject.length);
+                        out.print(i);
                         String paramValue = request.getParameter(paramName);
-                        for(Annotation getting : parametreNotion[i]){
-                            if (getting instanceof Param) {
-                                Param paramAnnotation = (Param) getting;
-                                if(paramName.equalsIgnoreCase(paramAnnotation.value())){
-                                    arguments[i] = paramValue;
-                                }
+
+                        if (pyte[i].isPrimitive() || pyte[i].equals(String.class)) {
+                            
+                            if (parametreNotion[i].length>0) {
+                                for(Annotation getting : parametreNotion[i]){
+                                    if (getting instanceof Param) {
+                                        Param paramAnnotation = (Param) getting;
+                                        if(paramName.equalsIgnoreCase(paramAnnotation.value())){
+                                            arguments[i] = paramValue;
+                                        }
+                                    }
+                                }                                
+                            }else 
+                            {
+                                arguments[i] = paramValue;
+                                // out.println(arguments[i]);
                             }
+                            
                         }
-                        i++;
+                        else if(!pyte[i].isPrimitive() && !pyte[i].equals(String.class) && knowObject.length>1){
+                            
+                                
+                            Class<?> ObjectParam=Class.forName(typeParametre.get(i));
+                            Object instanciate=ObjectParam.getDeclaredConstructor().newInstance();
+                            String makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
+                            out.println(makeMaj);
+                            // Object finition=new Object();
+                            Method[] listMethod=ObjectParam.getDeclaredMethods(); 
+                                                       
+                            for (int j = 0; j < listMethod.length; j++) {
+                                if (listMethod[j].getName().equalsIgnoreCase("set"+makeMaj)) {
+                                   listMethod[j].invoke(instanciate, paramValue);
+                                   if (parameterNames.hasMoreElements()) {
+                                        paramName = parameterNames.nextElement();
+                                        knowObject=paramName.split("\\.");
+                                        paramValue = request.getParameter(paramName);
+                                        makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
+                                        j=0;
+                                    }
+
+                                }
+
+                            }
+
+                            arguments[i]=instanciate;
+                            
+                        }
                     }
                 result = method.invoke(controller, arguments);
             }else{
@@ -169,7 +235,6 @@ public class FrontController extends HttpServlet {
             out.println("<li>Class: " + mapping.getClassName() + ":");
             out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
 
-
             if (result instanceof String) {
                 out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
             } else if (result instanceof ModelView) {
@@ -179,7 +244,6 @@ public class FrontController extends HttpServlet {
                 for(String key : data.keySet()){
                     request.setAttribute(key,data.get(key));
                 }
-
 
                 // int lastIndex = url.lastIndexOf("/");
                 // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
@@ -199,7 +263,7 @@ public class FrontController extends HttpServlet {
         }
         out.println("</body>");
         out.println("</html>");
-       
+
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response){
@@ -269,7 +333,4 @@ public class FrontController extends HttpServlet {
         return liste;
         
     }
- 
-
-
 }
