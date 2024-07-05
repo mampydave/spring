@@ -1,7 +1,12 @@
 package mg.itu.prom16.etu2564;
 
 import java.lang.reflect.Method;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
+
+import jakarta.servlet.http.*;
+
 
 public class Mapping {
     private String className;
@@ -18,8 +23,11 @@ public class Mapping {
     public Mapping() {
     }
     
-
-
+    public Mapping(String className, String methodName, List<String> nbparam) {
+        this.className = className;
+        this.methodName = methodName;
+        this.nbparam = nbparam;
+    }
     public Mapping(String className, String methodName, Object valeur, List<String> nbparam) {
         this.className = className;
         this.methodName = methodName;
@@ -56,8 +64,10 @@ public class Mapping {
             return 0;  
         } else if (type == boolean.class || type == Boolean.class) {
             return false;  
-        } else {
+        }
+         else {
             return null;  
         }
     }
+
 }
