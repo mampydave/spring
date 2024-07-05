@@ -2,7 +2,6 @@ package mg.itu.prom16.etu2564;
 import java.io.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
-// import mg.itu.util.Mapping;
 
 import java.lang.ModuleLayer.Controller;
 import java.lang.annotation.Annotation;
@@ -27,6 +26,7 @@ public class FrontController extends HttpServlet {
 
         Mapping forhavingDefaultVal=new Mapping();
         try {
+            
             ServletContext context = getServletContext();
             String chemin = context.getInitParameter("scan");
         
@@ -64,7 +64,8 @@ public class FrontController extends HttpServlet {
 
                                             }
                                         }                                    
-                                    }else{
+                                    }
+                                    else{
 
                                         arguments[i] = forhavingDefaultVal.getDefaultValue(paramType);
                                         paramNames.add(paramType.getName());
@@ -89,11 +90,17 @@ public class FrontController extends HttpServlet {
                                     arguments[i]=instanciate;
                                     paramNames.add(paramType.getName());
 
+                                }else if (paramType.equals(Mysession.class)) {
+                                    // HttpSession httpSession1=new HttpSession();
+                                    // Mysession sess=new Mysession();
+                                    // sess.add("no", "no");
+                                    // arguments[i] = sess;
+                                    paramNames.add(paramType.getName());
                                 }
 
                             }
                             
-                            truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris,arguments),paramNames);                    
+                            truest = new Mapping(trouver.getName(), method.getName(),paramNames);                    
                             hmap.put(url, truest);
 
                         }else{
@@ -130,137 +137,190 @@ public class FrontController extends HttpServlet {
         
         out.println("<html>");
         out.println("<head><title>Sprint5</title></head>");
+
         out.println("<body>");
-        if (mapping != null) {
-            // out.println(mapping.getMethodName());
-
-            Class<?> newc=Class.forName(mapping.getClassName());
-            Object controller=newc.getDeclaredConstructor().newInstance();
-            Method method;
-            Object result;
-            Enumeration<String> parameterNames = request.getParameterNames();
-
-            if (parameterNames.hasMoreElements()) {
-                out.println(mapping.getMethodName());
+        try {
+            if (mapping != null) {
+                // out.println(mapping.getMethodName());
+    
+                Class<?> newc=Class.forName(mapping.getClassName());
+                Object controller=newc.getDeclaredConstructor().newInstance();
+                Method method;
+                Object result;
+                Enumeration<String> parameterNames = request.getParameterNames();
+                List<String> typeParametre= mapping.getNbparam();
                 
+                // my session  en tant qu'attribut
 
-                    List<String> typeParametre= mapping.getNbparam();
-                    out.println(typeParametre.size());
+                for (Field field : newc.getDeclaredFields()) {
+                    if (field.getType().equals(Mysession.class)) {
+                        field.setAccessible(true);
+                        HttpSession httpSession = request.getSession();
+                        Mysession session = new Mysession(httpSession);
 
-
-                    Class<?>[] pyte = new Class<?>[typeParametre.size()];
-                    for (int i = 0; i < typeParametre.size(); i++) {
-                        out.println(typeParametre.get(i));
-                        try {
-                            Class<?> allParamtype=Class.forName(typeParametre.get(i));
-                            pyte[i] = allParamtype;
-                            
-                            
-                        } catch (ClassNotFoundException e) {
-                            out.println(e);
-                            pyte[i] = null;
-                        }
+                        field.set(controller, session);
                     }
-                    
-                    method=controller.getClass().getDeclaredMethod(mapping.getMethodName(),pyte);
-                    Annotation[][] parametreNotion=method.getParameterAnnotations();
-                    
-                    Object[] arguments = new Object[typeParametre.size()];
-                        
-                        
-                    for (int i=0; i < typeParametre.size();i++) {
-                        
-                        String paramName = parameterNames.nextElement();
-                        
-                        String[] knowObject=paramName.split("\\.");
-                        out.println(paramName);
-                        out.print(knowObject.length);
-                        out.print(i);
-                        String paramValue = request.getParameter(paramName);
+                }
+                
+                if (typeParametre.size()>0) {
 
-                        if (pyte[i].isPrimitive() || pyte[i].equals(String.class)) {
+                        Class<?>[] pyte = new Class<?>[typeParametre.size()];
+                        for (int i = 0; i < typeParametre.size(); i++) {
+                            //out.println(typeParametre.get(i));
+                            try {
+                                Class<?> allParamtype=Class.forName(typeParametre.get(i));
+
+                                pyte[i] = allParamtype;
+                                // out.println(pyte[i]);
+
+                            } catch (ClassNotFoundException e) {
+                                out.println(e);
+                                pyte[i] = null;
+                            }
+                        }
+                        
+                        method=controller.getClass().getDeclaredMethod(mapping.getMethodName(),pyte);
+                        Annotation[][] parametreNotion=method.getParameterAnnotations();
+                        
+                        Object[] arguments = new Object[typeParametre.size()];
+                        String paramName="default.default";
+                        String[] knowObject=paramName.split("\\.");
+                        String paramValue=null;
                             
-                            if (parametreNotion[i].length>0) {
-                                for(Annotation getting : parametreNotion[i]){
-                                    if (getting instanceof Param) {
-                                        Param paramAnnotation = (Param) getting;
-                                        if(paramName.equalsIgnoreCase(paramAnnotation.value())){
-                                            arguments[i] = paramValue;
+                        for (int i=0; i < typeParametre.size();i++) {
+                            
+                            if (parameterNames.hasMoreElements()) {
+                                paramName = parameterNames.nextElement();
+                            
+                                knowObject=paramName.split("\\.");
+                                //out.println(paramName);
+                                //out.print(knowObject.length);
+                                //out.print(i);
+                                paramValue = request.getParameter(paramName);                                
+                            }
+
+    
+                            if (pyte[i].isPrimitive() || pyte[i].equals(String.class)) {
+                                
+                                if (parametreNotion[i].length>0) {
+                                    for(Annotation getting : parametreNotion[i]){
+                                        if (getting instanceof Param) {
+                                            Param paramAnnotation = (Param) getting;
+                                            if(paramName.equalsIgnoreCase(paramAnnotation.value())){
+                                                arguments[i] = paramValue;
+                                            }
+    
+                                        }
+    
+                                    }                                
+                                }
+                                else if(typeParametre.size()!=parametreNotion[i].length) {
+                                    throw new Exception("ETU 002564 :les parametre doit etre annoter a @Param ");   
+                                }
+                                else 
+                                {
+                                    arguments[i] = paramValue;
+                                    // out.println(arguments[i]);
+                                }
+                                
+                            }
+                            else if(!pyte[i].isPrimitive() && !pyte[i].equals(String.class) && knowObject.length>1){
+                                
+                                    
+                                Class<?> ObjectParam=Class.forName(typeParametre.get(i));
+                                Object instanciate=ObjectParam.getDeclaredConstructor().newInstance();
+                                String makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
+                                // out.println(makeMaj);
+    
+                                Method[] listMethod=ObjectParam.getDeclaredMethods(); 
+                                                          
+                                for (int j = 0; j < listMethod.length; j++) {
+                                    // out.println(listMethod[j].getName()+" = "+"set"+makeMaj +"indice j"+j +"<br>");
+                                    if (listMethod[j].getName().equalsIgnoreCase("set"+makeMaj)) {
+                                        
+                                        // out.println("nom method: "+listMethod[j].getName()+"\n");
+                                        // out.println("a l'indice "+j);
+                                        listMethod[j].invoke(instanciate, paramValue);
+    
+    
+                                        if (parameterNames.hasMoreElements()) {
+                                            paramName = parameterNames.nextElement();
+                                            knowObject=paramName.split("\\.");
+                                            paramValue = request.getParameter(paramName);
+                                            if (knowObject.length>1) {
+
+
+                                                makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
+                                                j=-1;
+                                                out.println(paramName);
+                                                out.println(knowObject.length);                                                
+                                            }
+                                            else {
+                                                break;
+                                            }
+
                                         }
                                     }
-                                }                                
-                            }else 
-                            {
-                                arguments[i] = paramValue;
-                                // out.println(arguments[i]);
-                            }
-                            
-                        }
-                        else if(!pyte[i].isPrimitive() && !pyte[i].equals(String.class) && knowObject.length>1){
-                            
-                                
-                            Class<?> ObjectParam=Class.forName(typeParametre.get(i));
-                            Object instanciate=ObjectParam.getDeclaredConstructor().newInstance();
-                            String makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
-                            out.println(makeMaj);
-                            // Object finition=new Object();
-                            Method[] listMethod=ObjectParam.getDeclaredMethods(); 
-                                                       
-                            for (int j = 0; j < listMethod.length; j++) {
-                                if (listMethod[j].getName().equalsIgnoreCase("set"+makeMaj)) {
-                                   listMethod[j].invoke(instanciate, paramValue);
-                                   if (parameterNames.hasMoreElements()) {
-                                        paramName = parameterNames.nextElement();
-                                        knowObject=paramName.split("\\.");
-                                        paramValue = request.getParameter(paramName);
-                                        makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
-                                        j=0;
-                                    }
+    
 
+                                    // out.println("value of param: "+paramValue);
+                                    // out.println("in emp: "+makeMaj+"\n");
+                            
                                 }
-
+                                arguments[i]=instanciate;
                             }
+                            if (pyte[i].getName().equals(Mysession.class.getName())) {
+                                // out.println("session"); 
 
-                            arguments[i]=instanciate;
-                            
+                                HttpSession httpSession = request.getSession();
+                                Mysession session = new Mysession(httpSession);
+                                arguments[i] = session;   
+                            }
                         }
-                    }
-                result = method.invoke(controller, arguments);
-            }else{
-                method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
-                result=method.invoke(controller);
-            }
+                        
+                        // out.println(arguments[1]);
 
-            out.println("<h1>URL: " + requestUrl + "</h1>");
-            out.println("<li>Class: " + mapping.getClassName() + ":");
-            out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
-
-            if (result instanceof String) {
-                out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
-            } else if (result instanceof ModelView) {
-                ModelView model=(ModelView) result;
-                String url=model.getUrl();
-                HashMap<String, Object> data=model.getData();
-                for(String key : data.keySet()){
-                    request.setAttribute(key,data.get(key));
+                    result = method.invoke(controller, arguments);
+                    // result=0;
+                }else{
+                    method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
+                    result=method.invoke(controller);
                 }
-
-                // int lastIndex = url.lastIndexOf("/");
-                // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
-                // url = reference.substring(0, reference.lastIndexOf("/")) + url;
-
-                // int lastSlashIndex = reference.lastIndexOf("/");
-                // int secondLastSlashIndex = reference.lastIndexOf("/", lastSlashIndex - 1);
-                // url = reference.substring(0, secondLastSlashIndex + 1)+url;
-                RequestDispatcher dispatcher = request.getRequestDispatcher(url);
-                dispatcher.forward(request, response);
-            }else {
-                throw new Exception("invalide retour ou type de retour est non reconue");
-            }                
-
-        } else {
-            out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
+    
+                out.println("<h1>URL: " + requestUrl + "</h1>");
+                out.println("<li>Class: " + mapping.getClassName() + ":");
+                out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
+    
+                if (result instanceof String) {
+                    out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
+                } else if (result instanceof ModelView) {
+                    ModelView model=(ModelView) result;
+                    String url=model.getUrl();
+                    HashMap<String, Object> data=model.getData();
+                    for(String key : data.keySet()){
+                        request.setAttribute(key,data.get(key));
+                    }
+    
+                    // int lastIndex = url.lastIndexOf("/");
+                    // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
+                    // url = reference.substring(0, reference.lastIndexOf("/")) + url;
+    
+                    // int lastSlashIndex = reference.lastIndexOf("/");
+                    // int secondLastSlashIndex = reference.lastIndexOf("/", lastSlashIndex - 1);
+                    // url = reference.substring(0, secondLastSlashIndex + 1)+url;
+                    RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+                    dispatcher.forward(request, response);
+                }else {
+                    throw new Exception("invalide retour ou type de retour est non reconue");
+                }                
+    
+            } else {
+                out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
+            }            
+        } catch (Exception e) {
+            out.println(e);
         }
+
         out.println("</body>");
         out.println("</html>");
 
@@ -269,20 +329,23 @@ public class FrontController extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response){
         
         try {
-            // PrintWriter out = response.getWriter();
+            PrintWriter out = response.getWriter();
+
             processRequest(request, response);
 
         } catch (Exception e) {
-            System.out.println(e);
+            // System.out.println(e);
         }
     }
     public void doPost(HttpServletRequest request, HttpServletResponse response){
+        
         try {
+            PrintWriter out = response.getWriter();
 
             processRequest(request, response);
 
         } catch (Exception e) {
-            System.out.println(e);
+            // System.out.println(e);
         }
         
     }
