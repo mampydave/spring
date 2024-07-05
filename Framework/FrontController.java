@@ -2,7 +2,6 @@ package mg.itu.prom16.etu2564;
 import java.io.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
-// import mg.itu.util.Mapping;
 
 import java.lang.ModuleLayer.Controller;
 import java.lang.annotation.Annotation;
@@ -20,15 +19,14 @@ import javax.print.attribute.standard.RequestingUserName;
 
 public class FrontController extends HttpServlet { 
     Map<String, Mapping> hmap;
-    Map<String, List<String>> nbParam; 
-
 
     @Override
     public void init() throws ServletException {
-
         hmap = new HashMap<>();
-        nbParam = new HashMap<>();
+
+        Mapping forhavingDefaultVal=new Mapping();
         try {
+            
             ServletContext context = getServletContext();
             String chemin = context.getInitParameter("scan");
         
@@ -51,31 +49,55 @@ public class FrontController extends HttpServlet {
                         if (parameters.length>0) {
                             Object[] arguments = new Object[parameterTypes.length];
                             Annotation[][] parametreAnnot=method.getParameterAnnotations();
+                            
                             for (int i = 0; i < arguments.length; i++) {
                                 Class<?> paramType = parameterTypes[i];
-                                for(Annotation getting : parametreAnnot[i]){
-                                    if (getting instanceof Param) {
-                                        Param paramAnnotation = (Param) getting;
-                                        arguments[i] = paramAnnotation.value();
-                                        paramNames.add(paramType.getName());
-                                    }
-                               }
-                                // Class<?> paramType = parameterTypes[i];
-                                // if (paramType == int.class) {
-                                //     arguments[i] = 0; 
-                                // } else if (paramType == double.class) {
-                                //     arguments[i] = 0.0; 
-                                // } else if (paramType == String.class) {
-                                //     arguments[i] = ""; 
-                                // } else {
-                                //     arguments[i] = null; 
-                                // }
-                            }
-                            nbParam.put(method.getName(), paramNames);
-                            truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris,arguments));                    
-                            hmap.put(url, truest);
-                        }else{
 
+                                if (paramType.isPrimitive() || paramType.equals(String.class)) {
+                                                                
+                                    if (parametreAnnot[i].length>0) {
+                                        for(Annotation getting : parametreAnnot[i]){
+                                            if (getting instanceof Param) {
+                                                Param paramAnnotation = (Param) getting;
+                                                arguments[i] = forhavingDefaultVal.getDefaultValue(paramType);
+                                                paramNames.add(paramType.getName());
+
+                                            }
+                                        }                                    
+                                    }
+                                    else{
+
+                                        arguments[i] = forhavingDefaultVal.getDefaultValue(paramType);
+                                        paramNames.add(paramType.getName());
+                                        // throw new Exception("nandalo tato @l condition"+method.getName()+"length annot"+parametreAnnot[i].length);
+                                    }
+                                }else if (!paramType.isPrimitive() && !paramType.equals(String.class)) {
+                                    Class ObjectParam1 = paramType;
+                                    Object instanciate=ObjectParam1.getDeclaredConstructor().newInstance();
+                                    Method[] listMethod=ObjectParam1.getDeclaredMethods(); 
+                                    for (Method meth : listMethod ) {
+
+                                        if (meth.getName().startsWith("set") && meth.getParameterCount()==1) {
+                                            Class<?>[] param=meth.getParameterTypes();
+
+                                            try {
+                                                meth.invoke(instanciate,forhavingDefaultVal.getDefaultValue(param[0]));
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }                                                    
+                                        }
+                                    }
+                                    arguments[i]=instanciate;
+                                    paramNames.add(paramType.getName());
+
+                                }
+
+                            }
+                            
+                            truest = new Mapping(trouver.getName(), method.getName(),paramNames);                    
+                            hmap.put(url, truest);
+
+                        }else{
                             truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris));
                             if (hmap.containsKey(url)) {
                                 throw new Exception("url existant ["+ url +"] dans "+ trouver.getName() + " et "+ hmap.get(url).getClassName());
@@ -84,17 +106,17 @@ public class FrontController extends HttpServlet {
                         }
 
                     }
-                    hmap.put(url, truest);
                 }
                 if (!GetMethodPresent) {
                     throw new Exception("La classe " + trouver.getName() + " n'a aucune méthode annotée avec @GET."); 
                 }
-            }    
+            }
+    
         } catch (Exception e) {
             throw new ServletException("Erreur lors de l'initialisation du FrontController", e);
         }
-        
     }
+
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, Exception {
         response.setContentType("text/html;charset=UTF-8");
@@ -109,116 +131,198 @@ public class FrontController extends HttpServlet {
         
         out.println("<html>");
         out.println("<head><title>Sprint5</title></head>");
+
         out.println("<body>");
-        if (mapping != null) {
-            // out.println(mapping.getMethodName());
-
-            Class<?> newc=Class.forName(mapping.getClassName());
-            Object controller=newc.getDeclaredConstructor().newInstance();
-            Method method;
-            Object result;
-            Enumeration<String> parameterNames = request.getParameterNames();
-
-            if (parameterNames.hasMoreElements()) {
-                out.println(mapping.getMethodName());
+        try {
+            if (mapping != null) {
+                // out.println(mapping.getMethodName());
+    
+                Class<?> newc=Class.forName(mapping.getClassName());
+                Object controller=newc.getDeclaredConstructor().newInstance();
+                Method method;
+                Object result;
+                Enumeration<String> parameterNames = request.getParameterNames();
+                List<String> typeParametre= mapping.getNbparam();
                 
-                List<String> typeParametre= nbParam.get(mapping.getMethodName());
-
-                    Class<?>[] pyte = new Class<?>[typeParametre.size()];
                 
-                    for (int i = 0; i < typeParametre.size(); i++) {
-                        out.println(typeParametre.get(i));
-                        try {
-                            Class<?> allParamtype=Class.forName(typeParametre.get(i));
-                            pyte[i] = allParamtype;
-                            
-                            
-                        } catch (ClassNotFoundException e) {
-                            out.println(e);
-                            pyte[i] = null;
-                        }
-                    }
-                    
-                    method=controller.getClass().getDeclaredMethod(mapping.getMethodName(),pyte);
-                    Annotation[][] parametreNotion=method.getParameterAnnotations();
-                    
-                    Class<?>[] parameterTypes = method.getParameterTypes();
-                    Object[] arguments = new Object[parameterTypes.length];
-                        
-                    int i=0;    
-                    while (parameterNames.hasMoreElements()) {
-                        String paramName = parameterNames.nextElement();
-                        String paramValue = request.getParameter(paramName);
-                        for(Annotation getting : parametreNotion[i]){
-                            if (getting instanceof Param) {
-                                Param paramAnnotation = (Param) getting;
-                                if(paramName.equalsIgnoreCase(paramAnnotation.value())){
-                                    arguments[i] = paramValue;
-                                }
+                if (typeParametre.size()>0) {
+
+                        Class<?>[] pyte = new Class<?>[typeParametre.size()];
+                        for (int i = 0; i < typeParametre.size(); i++) {
+                            //out.println(typeParametre.get(i));
+                            try {
+                                Class<?> allParamtype=Class.forName(typeParametre.get(i));
+
+                                pyte[i] = allParamtype;
+                                // out.println(pyte[i]);
+
+                            } catch (ClassNotFoundException e) {
+                                out.println(e);
+                                pyte[i] = null;
                             }
                         }
-                        i++;
-                    }
-                result = method.invoke(controller, arguments);
-            }else{
-                method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
-                result=method.invoke(controller);
-            }
+                        
+                        method=controller.getClass().getDeclaredMethod(mapping.getMethodName(),pyte);
+                        Annotation[][] parametreNotion=method.getParameterAnnotations();
+                        
+                        Object[] arguments = new Object[typeParametre.size()];
+                        String paramName="default.default";
+                        String[] knowObject=paramName.split("\\.");
+                        String paramValue=null;
+                            
+                        for (int i=0; i < typeParametre.size();i++) {
+                            
+                            if (parameterNames.hasMoreElements()) {
+                                paramName = parameterNames.nextElement();
+                            
+                                knowObject=paramName.split("\\.");
+                                //out.println(paramName);
+                                //out.print(knowObject.length);
+                                //out.print(i);
+                                paramValue = request.getParameter(paramName);                                
+                            }
 
-            out.println("<h1>URL: " + requestUrl + "</h1>");
-            out.println("<li>Class: " + mapping.getClassName() + ":");
-            out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
+    
+                            if (pyte[i].isPrimitive() || pyte[i].equals(String.class)) {
+                                
+                                if (parametreNotion[i].length>0) {
+                                    for(Annotation getting : parametreNotion[i]){
+                                        if (getting instanceof Param) {
+                                            Param paramAnnotation = (Param) getting;
+                                            if(paramName.equalsIgnoreCase(paramAnnotation.value())){
+                                                arguments[i] = paramValue;
+                                            }
+    
+                                        }
+    
+                                    }                                
+                                }
+                                else if(typeParametre.size()!=parametreNotion[i].length) {
+                                    throw new Exception("ETU 002564 :les parametre doit etre annoter a @Param ");   
+                                }
+                                else 
+                                {
+                                    arguments[i] = paramValue;
+                                    // out.println(arguments[i]);
+                                }
+                                
+                            }
+                            else if(!pyte[i].isPrimitive() && !pyte[i].equals(String.class) && knowObject.length>1){
+                                
+                                    
+                                Class<?> ObjectParam=Class.forName(typeParametre.get(i));
+                                Object instanciate=ObjectParam.getDeclaredConstructor().newInstance();
+                                String makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
+                                // out.println(makeMaj);
+    
+                                Method[] listMethod=ObjectParam.getDeclaredMethods(); 
+                                                          
+                                for (int j = 0; j < listMethod.length; j++) {
+                                    // out.println(listMethod[j].getName()+" = "+"set"+makeMaj +"indice j"+j +"<br>");
+                                    if (listMethod[j].getName().equalsIgnoreCase("set"+makeMaj)) {
+                                        
+                                        // out.println("nom method: "+listMethod[j].getName()+"\n");
+                                        // out.println("a l'indice "+j);
+                                        listMethod[j].invoke(instanciate, paramValue);
+    
+    
+                                        if (parameterNames.hasMoreElements()) {
+                                            paramName = parameterNames.nextElement();
+                                            knowObject=paramName.split("\\.");
+                                            paramValue = request.getParameter(paramName);
+                                            if (knowObject.length>1) {
 
 
-            if (result instanceof String) {
-                out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
-            } else if (result instanceof ModelView) {
-                ModelView model=(ModelView) result;
-                String url=model.getUrl();
-                HashMap<String, Object> data=model.getData();
-                for(String key : data.keySet()){
-                    request.setAttribute(key,data.get(key));
+                                                makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
+                                                j=-1;
+                                                out.println(paramName);
+                                                out.println(knowObject.length);                                                
+                                            }
+                                            else {
+                                                break;
+                                            }
+
+                                        }
+                                    }
+    
+
+                                    // out.println("value of param: "+paramValue);
+                                    // out.println("in emp: "+makeMaj+"\n");
+                            
+                                }
+                                arguments[i]=instanciate;
+                            }
+
+                        }
+                        
+                        // out.println(arguments[1]);
+
+                    result = method.invoke(controller, arguments);
+                    // result=0;
+                }else{
+                    method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
+                    result=method.invoke(controller);
                 }
-
-
-                // int lastIndex = url.lastIndexOf("/");
-                // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
-                // url = reference.substring(0, reference.lastIndexOf("/")) + url;
-
-                // int lastSlashIndex = reference.lastIndexOf("/");
-                // int secondLastSlashIndex = reference.lastIndexOf("/", lastSlashIndex - 1);
-                // url = reference.substring(0, secondLastSlashIndex + 1)+url;
-                RequestDispatcher dispatcher = request.getRequestDispatcher(url);
-                dispatcher.forward(request, response);
-            }else {
-                throw new Exception("invalide retour ou type de retour est non reconue");
-            }                
-
-        } else {
-            out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
+    
+                out.println("<h1>URL: " + requestUrl + "</h1>");
+                out.println("<li>Class: " + mapping.getClassName() + ":");
+                out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
+    
+                if (result instanceof String) {
+                    out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
+                } else if (result instanceof ModelView) {
+                    ModelView model=(ModelView) result;
+                    String url=model.getUrl();
+                    HashMap<String, Object> data=model.getData();
+                    for(String key : data.keySet()){
+                        request.setAttribute(key,data.get(key));
+                    }
+    
+                    // int lastIndex = url.lastIndexOf("/");
+                    // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
+                    // url = reference.substring(0, reference.lastIndexOf("/")) + url;
+    
+                    // int lastSlashIndex = reference.lastIndexOf("/");
+                    // int secondLastSlashIndex = reference.lastIndexOf("/", lastSlashIndex - 1);
+                    // url = reference.substring(0, secondLastSlashIndex + 1)+url;
+                    RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+                    dispatcher.forward(request, response);
+                }else {
+                    throw new Exception("invalide retour ou type de retour est non reconue");
+                }                
+    
+            } else {
+                out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
+            }            
+        } catch (Exception e) {
+            out.println(e);
         }
+
         out.println("</body>");
         out.println("</html>");
-       
+
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response){
         
         try {
-            // PrintWriter out = response.getWriter();
+            PrintWriter out = response.getWriter();
+
             processRequest(request, response);
 
         } catch (Exception e) {
-            System.out.println(e);
+            // System.out.println(e);
         }
     }
     public void doPost(HttpServletRequest request, HttpServletResponse response){
+        
         try {
+            PrintWriter out = response.getWriter();
 
             processRequest(request, response);
 
         } catch (Exception e) {
-            System.out.println(e);
+            // System.out.println(e);
         }
         
     }
@@ -269,7 +373,4 @@ public class FrontController extends HttpServlet {
         return liste;
         
     }
- 
-
-
 }
