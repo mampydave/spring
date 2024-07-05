@@ -23,14 +23,11 @@ public class Mapping {
     public Mapping() {
     }
     
-
-
     public Mapping(String className, String methodName, List<String> nbparam) {
         this.className = className;
         this.methodName = methodName;
         this.nbparam = nbparam;
     }
-
     public Mapping(String className, String methodName, Object valeur, List<String> nbparam) {
         this.className = className;
         this.methodName = methodName;

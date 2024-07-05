@@ -63,7 +63,7 @@ public class FrontController extends HttpServlet {
                                                 paramNames.add(paramType.getName());
 
                                             }
-                                        }                                    
+                                        }               
                                     }
                                     else{
 
@@ -231,7 +231,6 @@ public class FrontController extends HttpServlet {
                                             knowObject=paramName.split("\\.");
                                             paramValue = request.getParameter(paramName);
                                             if (knowObject.length>1) {
-
 
                                                 makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
                                                 j=-1;
