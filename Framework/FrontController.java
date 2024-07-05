@@ -137,7 +137,6 @@ public class FrontController extends HttpServlet {
         
         out.println("<html>");
         out.println("<head><title>Sprint5</title></head>");
-
         out.println("<body>");
         try {
             if (mapping != null) {
@@ -160,8 +159,7 @@ public class FrontController extends HttpServlet {
 
                         field.set(controller, session);
                     }
-                }
-                
+                }                
                 if (typeParametre.size()>0) {
 
                         Class<?>[] pyte = new Class<?>[typeParametre.size()];
@@ -248,8 +246,6 @@ public class FrontController extends HttpServlet {
                                             knowObject=paramName.split("\\.");
                                             paramValue = request.getParameter(paramName);
                                             if (knowObject.length>1) {
-
-
                                                 makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
                                                 j=-1;
                                                 out.println(paramName);
@@ -270,8 +266,7 @@ public class FrontController extends HttpServlet {
                                 arguments[i]=instanciate;
                             }
                             if (pyte[i].getName().equals(Mysession.class.getName())) {
-                                // out.println("session"); 
-
+                               
                                 HttpSession httpSession = request.getSession();
                                 Mysession session = new Mysession(httpSession);
                                 arguments[i] = session;   
