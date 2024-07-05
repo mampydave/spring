@@ -63,7 +63,7 @@ public class FrontController extends HttpServlet {
                                                 paramNames.add(paramType.getName());
 
                                             }
-                                        }               
+                                        }                                    
                                     }
                                     else{
 
@@ -90,6 +90,12 @@ public class FrontController extends HttpServlet {
                                     arguments[i]=instanciate;
                                     paramNames.add(paramType.getName());
 
+                                }else if (paramType.equals(Mysession.class)) {
+                                    // HttpSession httpSession1=new HttpSession();
+                                    // Mysession sess=new Mysession();
+                                    // sess.add("no", "no");
+                                    // arguments[i] = sess;
+                                    paramNames.add(paramType.getName());
                                 }
 
                             }
@@ -131,7 +137,6 @@ public class FrontController extends HttpServlet {
         
         out.println("<html>");
         out.println("<head><title>Sprint5</title></head>");
-
         out.println("<body>");
         try {
             if (mapping != null) {
@@ -144,7 +149,17 @@ public class FrontController extends HttpServlet {
                 Enumeration<String> parameterNames = request.getParameterNames();
                 List<String> typeParametre= mapping.getNbparam();
                 
-                
+                // my session  en tant qu'attribut
+
+                for (Field field : newc.getDeclaredFields()) {
+                    if (field.getType().equals(Mysession.class)) {
+                        field.setAccessible(true);
+                        HttpSession httpSession = request.getSession();
+                        Mysession session = new Mysession(httpSession);
+
+                        field.set(controller, session);
+                    }
+                }                
                 if (typeParametre.size()>0) {
 
                         Class<?>[] pyte = new Class<?>[typeParametre.size()];
@@ -231,7 +246,6 @@ public class FrontController extends HttpServlet {
                                             knowObject=paramName.split("\\.");
                                             paramValue = request.getParameter(paramName);
                                             if (knowObject.length>1) {
-
                                                 makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
                                                 j=-1;
                                                 out.println(paramName);
@@ -251,7 +265,12 @@ public class FrontController extends HttpServlet {
                                 }
                                 arguments[i]=instanciate;
                             }
-
+                            if (pyte[i].getName().equals(Mysession.class.getName())) {
+                               
+                                HttpSession httpSession = request.getSession();
+                                Mysession session = new Mysession(httpSession);
+                                arguments[i] = session;   
+                            }
                         }
                         
                         // out.println(arguments[1]);
