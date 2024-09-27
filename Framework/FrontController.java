@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.gson.*;
+
 import javax.print.attribute.standard.RequestingUserName;
 
 
@@ -41,11 +43,15 @@ public class FrontController extends HttpServlet {
                     List<String> paramNames = new ArrayList<>();
                     
                     if (method.isAnnotationPresent(Get.class)) {
+                        
+                        
+                        
                         GetMethodPresent=true;
                         Object pris=trouver.getDeclaredConstructor().newInstance();
                         Get annotation = method.getAnnotation(Get.class);
                         String url = annotation.value();
                         Mapping truest;
+
                         if (parameters.length>0) {
                             Object[] arguments = new Object[parameterTypes.length];
                             Annotation[][] parametreAnnot=method.getParameterAnnotations();
@@ -100,11 +106,22 @@ public class FrontController extends HttpServlet {
 
                             }
                             
-                            truest = new Mapping(trouver.getName(), method.getName(),paramNames);                    
+                            if (method.isAnnotationPresent(Restapi.class)) {
+                                truest = new Mapping(trouver.getName(), method.getName(),paramNames,true);                                
+                            }else{                            
+                                truest = new Mapping(trouver.getName(), method.getName(),paramNames,false);
+                                
+                            }
                             hmap.put(url, truest);
+                        }
+                        else{
+                            if (method.isAnnotationPresent(Restapi.class)) {
+                                truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris),true);                                
+                            }else{
+                                truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris),false);
 
-                        }else{
-                            truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris));
+                            }
+
                             if (hmap.containsKey(url)) {
                                 throw new Exception("url existant ["+ url +"] dans "+ trouver.getName() + " et "+ hmap.get(url).getClassName());
                             }
@@ -113,6 +130,7 @@ public class FrontController extends HttpServlet {
 
                     }
                 }
+
                 if (!GetMethodPresent) {
                     throw new Exception("La classe " + trouver.getName() + " n'a aucune méthode annotée avec @GET."); 
                 }
@@ -125,19 +143,26 @@ public class FrontController extends HttpServlet {
 
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, Exception {
-        response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
+        
        
         String requestUrl = request.getRequestURI().substring(request.getContextPath().length());
         String reference=requestUrl;
         // requestUrl ="/"+requestUrl.substring(requestUrl.lastIndexOf("/") + 1);
         Mapping mapping = hmap.get(requestUrl);
         
+        if (mapping.isEstRestapi()) {
+            response.setContentType("application/json;charset=UTF-8");
+        }
+        else{
+            response.setContentType("text/html;charset=UTF-8");
+        }
 
+        PrintWriter out = response.getWriter();
         
-        out.println("<html>");
-        out.println("<head><title>Sprint5</title></head>");
-        out.println("<body>");
+        // out.println("<html>");
+        // out.println("<head><title>Sprint5</title></head>");
+        // out.println(mapping.isEstRestapi()+"dave");
+        // out.println("<body>");
         try {
             if (mapping != null) {
                 // out.println(mapping.getMethodName());
@@ -148,7 +173,7 @@ public class FrontController extends HttpServlet {
                 Object result;
                 Enumeration<String> parameterNames = request.getParameterNames();
                 List<String> typeParametre= mapping.getNbparam();
-                
+                // out.println("nenandalo");
                 // my session  en tant qu'attribut
 
                 for (Field field : newc.getDeclaredFields()) {
@@ -159,8 +184,9 @@ public class FrontController extends HttpServlet {
 
                         field.set(controller, session);
                     }
-                }                
-                if (typeParametre.size()>0) {
+                }
+                
+                if (typeParametre!=null && typeParametre.size()>0) {
 
                         Class<?>[] pyte = new Class<?>[typeParametre.size()];
                         for (int i = 0; i < typeParametre.size(); i++) {
@@ -246,6 +272,8 @@ public class FrontController extends HttpServlet {
                                             knowObject=paramName.split("\\.");
                                             paramValue = request.getParameter(paramName);
                                             if (knowObject.length>1) {
+
+
                                                 makeMaj=knowObject[1].substring(0,1).toUpperCase()+knowObject[1].substring(1);
                                                 j=-1;
                                                 out.println(paramName);
@@ -266,7 +294,8 @@ public class FrontController extends HttpServlet {
                                 arguments[i]=instanciate;
                             }
                             if (pyte[i].getName().equals(Mysession.class.getName())) {
-                               
+                                // out.println("session"); 
+
                                 HttpSession httpSession = request.getSession();
                                 Mysession session = new Mysession(httpSession);
                                 arguments[i] = session;   
@@ -285,39 +314,62 @@ public class FrontController extends HttpServlet {
                 out.println("<h1>URL: " + requestUrl + "</h1>");
                 out.println("<li>Class: " + mapping.getClassName() + ":");
                 out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
-    
-                if (result instanceof String) {
-                    out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
-                } else if (result instanceof ModelView) {
-                    ModelView model=(ModelView) result;
-                    String url=model.getUrl();
-                    HashMap<String, Object> data=model.getData();
-                    for(String key : data.keySet()){
-                        request.setAttribute(key,data.get(key));
+
+                if (mapping.isEstRestapi()) {
+                    if (result instanceof String) {
+                        Gson gson=new Gson();
+                        String json = gson.toJson(result);
+                        out.print(json);
+                        out.flush();
+                    } 
+                    else if (result instanceof ModelView) {
+                        ModelView model=(ModelView) result;
+                        String url=model.getUrl();
+                        HashMap<String, Object> data=model.getData();
+                        Gson gsonModV=new Gson();
+                        String jsonModV = gsonModV.toJson(data);
+                        out.print(jsonModV);
+                        out.flush();
                     }
+                    else {
+                        throw new Exception("invalide retour ou type de retour est non reconue");
+                    }                   
+                }
+                else{
+                    if (result instanceof String) {
+                        out.println("<ul>Value of method: " + (String) result+ "</ul></li>");                                        
+                    } else if (result instanceof ModelView) {
+                        ModelView model=(ModelView) result;
+                        String url=model.getUrl();
+                        HashMap<String, Object> data=model.getData();
+                        for(String key : data.keySet()){
+                            request.setAttribute(key,data.get(key));
+                        }
+        
+                        // int lastIndex = url.lastIndexOf("/");
+                        // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
+                        // url = reference.substring(0, reference.lastIndexOf("/")) + url;
+        
+                        // int lastSlashIndex = reference.lastIndexOf("/");
+                        // int secondLastSlashIndex = reference.lastIndexOf("/", lastSlashIndex - 1);
+                        // url = reference.substring(0, secondLastSlashIndex + 1)+url;
+                        RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+                        dispatcher.forward(request, response);
+                    }else {
+                        throw new Exception("invalide retour ou type de retour est non reconue");
+                    }
+                }               
     
-                    // int lastIndex = url.lastIndexOf("/");
-                    // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
-                    // url = reference.substring(0, reference.lastIndexOf("/")) + url;
-    
-                    // int lastSlashIndex = reference.lastIndexOf("/");
-                    // int secondLastSlashIndex = reference.lastIndexOf("/", lastSlashIndex - 1);
-                    // url = reference.substring(0, secondLastSlashIndex + 1)+url;
-                    RequestDispatcher dispatcher = request.getRequestDispatcher(url);
-                    dispatcher.forward(request, response);
-                }else {
-                    throw new Exception("invalide retour ou type de retour est non reconue");
-                }                
-    
-            } else {
+            } 
+            else {
                 out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
             }            
         } catch (Exception e) {
             out.println(e);
         }
 
-        out.println("</body>");
-        out.println("</html>");
+        // out.println("</body>");
+        // out.println("</html>");
 
     }
 

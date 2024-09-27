@@ -12,6 +12,7 @@ public class Mapping {
     private String className;
     private String methodName;
     private Object valeur;
+    private boolean estRestapi;
     private List<String> nbparam;
     
     public Mapping(String className, String methodName,Object valeur) {
@@ -23,11 +24,29 @@ public class Mapping {
     public Mapping() {
     }
     
+
+
+    public Mapping(String className, String methodName, Object valeur, boolean estRestapi) {
+        this.className = className;
+        this.methodName = methodName;
+        this.valeur = valeur;
+        this.estRestapi = estRestapi;
+    }
+
+    
+    public Mapping(String className, String methodName, List<String> nbparam, boolean estRestapi) {
+        this.className = className;
+        this.methodName = methodName;
+        this.nbparam = nbparam;
+        this.estRestapi = estRestapi;
+    }
+
     public Mapping(String className, String methodName, List<String> nbparam) {
         this.className = className;
         this.methodName = methodName;
         this.nbparam = nbparam;
     }
+
     public Mapping(String className, String methodName, Object valeur, List<String> nbparam) {
         this.className = className;
         this.methodName = methodName;
@@ -57,6 +76,14 @@ public class Mapping {
 
     public Object getValeur() {
         return valeur;
+    }
+
+    public boolean isEstRestapi() {
+        return estRestapi;
+    }
+
+    public void setEstRestapi(boolean estRestapi) {
+        this.estRestapi = estRestapi;
     }
 
     public Object getDefaultValue(Class<?> type) {
