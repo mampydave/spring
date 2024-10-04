@@ -10,6 +10,7 @@ import jakarta.servlet.http.*;
 
 public class Mapping {
     private String className;
+    private String annotateType;
     private String methodName;
     private Object valeur;
     private boolean estRestapi;
@@ -26,6 +27,22 @@ public class Mapping {
     
 
 
+    public Mapping(String className, String annotateType, String methodName, Object valeur, boolean estRestapi) {
+        this.className = className;
+        this.annotateType = annotateType;
+        this.methodName = methodName;
+        this.valeur = valeur;
+        this.estRestapi = estRestapi;
+    }
+
+    public Mapping(String className, String annotateType, String methodName, List<String> nbparam, boolean estRestapi) {
+        this.className = className;
+        this.annotateType = annotateType;
+        this.methodName = methodName;
+        this.nbparam = nbparam;
+        this.estRestapi = estRestapi;
+    }
+    
     public Mapping(String className, String methodName, Object valeur, boolean estRestapi) {
         this.className = className;
         this.methodName = methodName;
@@ -73,6 +90,14 @@ public class Mapping {
         return methodName;
     }
 
+
+    public String getAnnotateType() {
+        return annotateType;
+    }
+
+    public void setAnnotateType(String annotateType) {
+        this.annotateType = annotateType;
+    }
 
     public Object getValeur() {
         return valeur;
