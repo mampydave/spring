@@ -13,6 +13,7 @@ public class Mapping {
     private String className;
     private List<VerbAction> verbActions;
     
+
     
     public Mapping() {
     }

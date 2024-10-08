@@ -38,7 +38,7 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
-                    
+
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -56,6 +56,7 @@ public class FrontController extends HttpServlet {
                         Url annotation = method.getAnnotation(Url.class);
                         String url = annotation.value();
                         Mapping truest;
+
                         VerbAction verbact;
                         
                             
@@ -115,6 +116,7 @@ public class FrontController extends HttpServlet {
                             }
                             
                             if (method.isAnnotationPresent(Restapi.class)) {
+
                                 // truest = new Mapping(trouver.getName(), notionType ,method.getName(),paramNames,true);                                
                                 verbact = new VerbAction(notionType ,method.getName(),paramNames,true);    
                                 hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
@@ -126,7 +128,6 @@ public class FrontController extends HttpServlet {
                             }
                             // System.out.println(url +"Taille parame" + truest.getNbparam().size()+": "+truest.getNbparam());
 
-                            // hmap.put(url, truest);
                         
                         }
                         else{
