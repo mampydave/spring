@@ -31,27 +31,35 @@ public class FrontController extends HttpServlet {
             
             ServletContext context = getServletContext();
             String chemin = context.getInitParameter("scan");
-        
+            
             List<String> controllers = scan(chemin); 
-            boolean GetMethodPresent = false; // Flag pour vérifier les méthodes @GET
+            boolean GetMethodPresent = true; // Flag pour vérifier les méthodes @GET
             for (String controller : controllers) {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
-                for (Method method : methods) {   
+                for (Method method : methods) {
+                    
+                    String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
                     List<String> paramNames = new ArrayList<>();
                     
-                    if (method.isAnnotationPresent(Get.class)) {
+                    if (method.isAnnotationPresent(Url.class)) {
+                        if (method.isAnnotationPresent(Post.class)) {
+                            notionType = "POST";
+                           
+                        }    
                         
                         
-                        
-                        GetMethodPresent=true;
+                        // GetMethodPresent=true;
                         Object pris=trouver.getDeclaredConstructor().newInstance();
-                        Get annotation = method.getAnnotation(Get.class);
+                        Url annotation = method.getAnnotation(Url.class);
                         String url = annotation.value();
                         Mapping truest;
-
+                        VerbAction verbact;
+                        
+                            
+                        
                         if (parameters.length>0) {
                             Object[] arguments = new Object[parameterTypes.length];
                             Annotation[][] parametreAnnot=method.getParameterAnnotations();
@@ -107,33 +115,45 @@ public class FrontController extends HttpServlet {
                             }
                             
                             if (method.isAnnotationPresent(Restapi.class)) {
-                                truest = new Mapping(trouver.getName(), method.getName(),paramNames,true);                                
+                                // truest = new Mapping(trouver.getName(), notionType ,method.getName(),paramNames,true);                                
+                                verbact = new VerbAction(notionType ,method.getName(),paramNames,true);    
+                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                             }else{                            
-                                truest = new Mapping(trouver.getName(), method.getName(),paramNames,false);
+                                // truest = new Mapping(trouver.getName(), notionType,method.getName(),paramNames,false);
+                                verbact = new VerbAction(notionType ,method.getName(),paramNames,false);               
+                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                                 
                             }
-                            hmap.put(url, truest);
+                            // System.out.println(url +"Taille parame" + truest.getNbparam().size()+": "+truest.getNbparam());
+
+                            // hmap.put(url, truest);
+                        
                         }
                         else{
                             if (method.isAnnotationPresent(Restapi.class)) {
-                                truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris),true);                                
+                                // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),true);                                
+                                verbact = new VerbAction(notionType,method.getName(),method.invoke(pris),true);
+                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+                            
                             }else{
-                                truest = new Mapping(trouver.getName(), method.getName(),method.invoke(pris),false);
+                                // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),false);
+                                verbact = new VerbAction(notionType,method.getName(),method.invoke(pris),false);
+                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
 
                             }
 
-                            if (hmap.containsKey(url)) {
-                                throw new Exception("url existant ["+ url +"] dans "+ trouver.getName() + " et "+ hmap.get(url).getClassName());
-                            }
-                            hmap.put(url, truest);
+                            // if (hmap.containsKey(url)) {
+                            //     throw new Exception("url existant ["+ url +"] dans "+ trouver.getName() + " et "+ hmap.get(url).getClassName());
+                            // }
+                            // hmap.put(url, truest);
                         }
 
                     }
                 }
 
-                if (!GetMethodPresent) {
-                    throw new Exception("La classe " + trouver.getName() + " n'a aucune méthode annotée avec @GET."); 
-                }
+                // if (!GetMethodPresent) {
+                //     throw new Exception("La classe " + trouver.getName() + " n'a aucune méthode annotée avec @GET."); 
+                // }
             }
     
         } catch (Exception e) {
@@ -150,12 +170,7 @@ public class FrontController extends HttpServlet {
         // requestUrl ="/"+requestUrl.substring(requestUrl.lastIndexOf("/") + 1);
         Mapping mapping = hmap.get(requestUrl);
         
-        if (mapping.isEstRestapi()) {
-            response.setContentType("application/json;charset=UTF-8");
-        }
-        else{
-            response.setContentType("text/html;charset=UTF-8");
-        }
+  
 
         PrintWriter out = response.getWriter();
         
@@ -163,16 +178,42 @@ public class FrontController extends HttpServlet {
         // out.println("<head><title>Sprint5</title></head>");
         // out.println(mapping.isEstRestapi()+"dave");
         // out.println("<body>");
+        String methodFormul=request.getMethod();
+
         try {
+            VerbAction myVerbAction=new VerbAction();
+
             if (mapping != null) {
-                // out.println(mapping.getMethodName());
+                for (int i = 0; i < mapping.getVerbActions().size(); i++) {
+                    if (mapping.getVerbActions().get(i).getAnnotateType().equalsIgnoreCase(methodFormul)) {
+                        myVerbAction = mapping.getVerbActions().get(i);
+                        break;                        
+                    }else{
+                        myVerbAction = mapping.getVerbActions().get(i);
+                    }
+                }
+
+                out.println(mapping.getVerbActions().get(0).getAnnotateType());
+
+                if (myVerbAction.isEstRestapi()) {
+                    response.setContentType("application/json;charset=UTF-8");
+                }
+                if (!myVerbAction.isEstRestapi()){
+                    response.setContentType("text/html;charset=UTF-8");
+                }
     
+                if (!myVerbAction.getAnnotateType().equalsIgnoreCase(methodFormul)) {
+                    response.sendError(405,"la methode associer est :" + myVerbAction.getAnnotateType() + "alors que dans le formulaire c'est : "+methodFormul);
+                }
+
                 Class<?> newc=Class.forName(mapping.getClassName());
                 Object controller=newc.getDeclaredConstructor().newInstance();
                 Method method;
                 Object result;
                 Enumeration<String> parameterNames = request.getParameterNames();
-                List<String> typeParametre= mapping.getNbparam();
+                List<String> typeParametre= myVerbAction.getNbparam();
+                
+                
                 // out.println("nenandalo");
                 // my session  en tant qu'attribut
 
@@ -185,6 +226,8 @@ public class FrontController extends HttpServlet {
                         field.set(controller, session);
                     }
                 }
+
+                // out.println(typeParametre.size());
                 
                 if (typeParametre!=null && typeParametre.size()>0) {
 
@@ -203,7 +246,7 @@ public class FrontController extends HttpServlet {
                             }
                         }
                         
-                        method=controller.getClass().getDeclaredMethod(mapping.getMethodName(),pyte);
+                        method=controller.getClass().getDeclaredMethod(myVerbAction.getMethodName(),pyte);
                         Annotation[][] parametreNotion=method.getParameterAnnotations();
                         
                         Object[] arguments = new Object[typeParametre.size()];
@@ -306,16 +349,17 @@ public class FrontController extends HttpServlet {
 
                     result = method.invoke(controller, arguments);
                     // result=0;
+                
                 }else{
-                    method=controller.getClass().getDeclaredMethod(mapping.getMethodName());
+                    method=controller.getClass().getDeclaredMethod(myVerbAction.getMethodName());
                     result=method.invoke(controller);
                 }
     
                 out.println("<h1>URL: " + requestUrl + "</h1>");
                 out.println("<li>Class: " + mapping.getClassName() + ":");
-                out.println("<ul>Method: " + mapping.getMethodName() + "</ul>");
+                out.println("<ul>Method: " + myVerbAction.getMethodName() + "</ul>");
 
-                if (mapping.isEstRestapi()) {
+                if (myVerbAction.isEstRestapi()) {
                     if (result instanceof String) {
                         Gson gson=new Gson();
                         String json = gson.toJson(result);
@@ -384,6 +428,7 @@ public class FrontController extends HttpServlet {
             // System.out.println(e);
         }
     }
+
     public void doPost(HttpServletRequest request, HttpServletResponse response){
         
         try {
