@@ -8,8 +8,22 @@ public class VerbAction {
     private Object valeur;
     private boolean estRestapi;
     private List<String> nbparam;
+    @Override
+    public boolean equals(Object obj) {
+        // Vérifie si l'objet est de la même classe
+        if (this == obj) return true;
+        if (!(obj instanceof VerbAction)) return false;
+        // Vérifie si les noms d'action sont identiques
+        VerbAction that = (VerbAction) obj;
+        return annotateType.equals(that.annotateType);
+    }
 
-    
+    @Override
+    public int hashCode() {
+        // Utilise le nom d'action pour le code de hachage
+        return annotateType.hashCode();
+    }
+
     public VerbAction() {
     }
     public VerbAction(String annotateType, String methodName, List<String> nbparam, boolean estRestapi) {
