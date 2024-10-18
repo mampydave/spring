@@ -28,7 +28,6 @@ public class Mapping {
         return verbActions;
     }
 
-
     public void setVerbActions(Set<VerbAction> verbActions) {
         this.verbActions = verbActions;
     }

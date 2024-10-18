@@ -8,7 +8,6 @@ public class VerbAction {
     private Object valeur;
     private boolean estRestapi;
     private List<String> nbparam;
-
     @Override
     public boolean equals(Object obj) {
         // Vérifie si l'objet est de la même classe
