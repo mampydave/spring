@@ -1,6 +1,7 @@
 package mg.itu.prom16.etu2564;
 import java.io.*;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
 
 import java.lang.ModuleLayer.Controller;
@@ -19,7 +20,7 @@ import com.google.gson.*;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-
+@MultipartConfig
 public class FrontController extends HttpServlet { 
     Map<String, Mapping> hmap;
 
@@ -39,6 +40,7 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
+
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -67,7 +69,7 @@ public class FrontController extends HttpServlet {
                             for (int i = 0; i < arguments.length; i++) {
                                 Class<?> paramType = parameterTypes[i];
 
-                                if (paramType.isPrimitive() || paramType.equals(String.class)) {
+                                if (paramType.isPrimitive() || paramType.equals(String.class) || paramType.equals(Part.class)) {
                                                                 
                                     if (parametreAnnot[i].length>0) {
                                         for(Annotation getting : parametreAnnot[i]){
@@ -139,6 +141,7 @@ public class FrontController extends HttpServlet {
                             }
                             // System.out.println(url +"Taille parame" + truest.getNbparam().size()+": "+truest.getNbparam());
 
+                            // hmap.put(url, truest);
                         
                         }
                         else{
@@ -152,6 +155,7 @@ public class FrontController extends HttpServlet {
                                     throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
                                     
                                 }
+
                             
                             }else{
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),false);
@@ -361,10 +365,34 @@ public class FrontController extends HttpServlet {
                             }
                             if (pyte[i].getName().equals(Mysession.class.getName())) {
                                 // out.println("session"); 
-
                                 HttpSession httpSession = request.getSession();
                                 Mysession session = new Mysession(httpSession);
                                 arguments[i] = session;   
+                            }
+                            if (pyte[i].equals(Part.class)) {
+                                
+                                                                
+                                if (parametreNotion[i].length>0) {
+                                    for(Annotation getting : parametreNotion[i]){
+                                        if (getting instanceof Param) {
+                                            Param paramAnnotation = (Param) getting;
+                                            if(paramName.equalsIgnoreCase(paramAnnotation.value())){
+                                                Part part = request.getPart(paramName);
+                                                arguments[i] = part;
+                                            }
+    
+                                        }
+    
+                                    }                                
+                                }
+                                else if(typeParametre.size()!=parametreNotion[i].length) {
+                                    throw new Exception("ETU 002564 :les parametre doit etre annoter a @Param ");   
+                                }
+                                // else 
+                                // {
+                                //     arguments[i] = paramValue;
+                                //     // out.println(arguments[i]);
+                                // }   
                             }
                         }
                         
