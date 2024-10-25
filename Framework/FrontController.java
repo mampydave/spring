@@ -40,7 +40,7 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
-                    
+
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -136,6 +136,7 @@ public class FrontController extends HttpServlet {
                                     
                                 }
                                 // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+
                                 
                             }
                             // System.out.println(url +"Taille parame" + truest.getNbparam().size()+": "+truest.getNbparam());
@@ -147,13 +148,14 @@ public class FrontController extends HttpServlet {
                             if (method.isAnnotationPresent(Restapi.class)) {
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),true);                                
                                 verbact = new VerbAction(notionType,method.getName(),method.invoke(pris),true);
+
                                 Mapping newtruest = hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new HashSet<>()));
                                 
                                 if (!newtruest.getVerbActions().add(verbact)) {
                                     throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
                                     
                                 }
-                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+
                             
                             }else{
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),false);
@@ -165,7 +167,6 @@ public class FrontController extends HttpServlet {
                                     
                                 }
                                 // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
-
                             }
 
                             // if (hmap.containsKey(url)) {

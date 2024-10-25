@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.servlet.http.*;
 
@@ -11,26 +12,23 @@ import jakarta.servlet.http.*;
 
 public class Mapping {
     private String className;
-    private List<VerbAction> verbActions;
-    
-
+    private Set<VerbAction> verbActions;    
     
     public Mapping() {
     }
 
-    public Mapping(String className, List<VerbAction> verbActions) {
+    public Mapping(String className, Set<VerbAction> verbActions) {
         this.className = className;
         this.verbActions = verbActions;
     }
 
     
 
-    public List<VerbAction> getVerbActions() {
+    public Set<VerbAction> getVerbActions() {
         return verbActions;
     }
 
-
-    public void setVerbActions(List<VerbAction> verbActions) {
+    public void setVerbActions(Set<VerbAction> verbActions) {
         this.verbActions = verbActions;
     }
 
@@ -54,5 +52,6 @@ public class Mapping {
             return null;  
         }
     }
+
 
 }
