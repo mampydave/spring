@@ -1,6 +1,7 @@
 package mg.itu.prom16.etu2564;
 import java.io.*;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
 
 import java.lang.ModuleLayer.Controller;
@@ -12,13 +13,14 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import com.google.gson.*;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-
+@MultipartConfig
 public class FrontController extends HttpServlet { 
     Map<String, Mapping> hmap;
 
@@ -38,7 +40,7 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
-
+                    
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -56,7 +58,6 @@ public class FrontController extends HttpServlet {
                         Url annotation = method.getAnnotation(Url.class);
                         String url = annotation.value();
                         Mapping truest;
-
                         VerbAction verbact;
                         
                             
@@ -68,7 +69,7 @@ public class FrontController extends HttpServlet {
                             for (int i = 0; i < arguments.length; i++) {
                                 Class<?> paramType = parameterTypes[i];
 
-                                if (paramType.isPrimitive() || paramType.equals(String.class)) {
+                                if (paramType.isPrimitive() || paramType.equals(String.class) || paramType.equals(Part.class)) {
                                                                 
                                     if (parametreAnnot[i].length>0) {
                                         for(Annotation getting : parametreAnnot[i]){
@@ -116,30 +117,54 @@ public class FrontController extends HttpServlet {
                             }
                             
                             if (method.isAnnotationPresent(Restapi.class)) {
-
                                 // truest = new Mapping(trouver.getName(), notionType ,method.getName(),paramNames,true);                                
                                 verbact = new VerbAction(notionType ,method.getName(),paramNames,true);    
-                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+                                Mapping newtruest = hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new HashSet<>()));
+                                
+                                if (!newtruest.getVerbActions().add(verbact)) {
+                                    throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
+                                    
+                                }
+                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                             }else{                            
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),paramNames,false);
                                 verbact = new VerbAction(notionType ,method.getName(),paramNames,false);               
-                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+                                Mapping newtruest = hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new HashSet<>()));
+                                
+                                if (!newtruest.getVerbActions().add(verbact)) {
+                                    throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
+                                    
+                                }
+                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                                 
                             }
                             // System.out.println(url +"Taille parame" + truest.getNbparam().size()+": "+truest.getNbparam());
 
+                            // hmap.put(url, truest);
                         
                         }
                         else{
                             if (method.isAnnotationPresent(Restapi.class)) {
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),true);                                
                                 verbact = new VerbAction(notionType,method.getName(),method.invoke(pris),true);
-                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+                                Mapping newtruest = hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new HashSet<>()));
+                                
+                                if (!newtruest.getVerbActions().add(verbact)) {
+                                    throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
+                                    
+                                }
+                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                             
                             }else{
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),false);
                                 verbact = new VerbAction(notionType,method.getName(),method.invoke(pris),false);
-                                hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+                                Mapping newtruest = hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new HashSet<>()));
+                                
+                                if (!newtruest.getVerbActions().add(verbact)) {
+                                    throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
+                                    
+                                }
+                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
 
                             }
 
@@ -185,17 +210,17 @@ public class FrontController extends HttpServlet {
             VerbAction myVerbAction=new VerbAction();
 
             if (mapping != null) {
-                for (int i = 0; i < mapping.getVerbActions().size(); i++) {
-                    if (mapping.getVerbActions().get(i).getAnnotateType().equalsIgnoreCase(methodFormul)) {
-                        myVerbAction = mapping.getVerbActions().get(i);
+
+                for (VerbAction verbAction : mapping.getVerbActions()) {
+                    if (verbAction.getAnnotateType().equalsIgnoreCase(methodFormul)) {
+                        myVerbAction = verbAction;
                         break;                        
-                    }else{
-                        myVerbAction = mapping.getVerbActions().get(i);
+                    } else {
+                        myVerbAction = verbAction;
                     }
                 }
-
-                out.println(mapping.getVerbActions().get(0).getAnnotateType());
-
+                
+                mapping.getVerbActions().stream().forEach(element -> out.println(element));
                 if (myVerbAction.isEstRestapi()) {
                     response.setContentType("application/json;charset=UTF-8");
                 }
@@ -339,10 +364,34 @@ public class FrontController extends HttpServlet {
                             }
                             if (pyte[i].getName().equals(Mysession.class.getName())) {
                                 // out.println("session"); 
-
                                 HttpSession httpSession = request.getSession();
                                 Mysession session = new Mysession(httpSession);
                                 arguments[i] = session;   
+                            }
+                            if (pyte[i].equals(Part.class)) {
+                                
+                                                                
+                                if (parametreNotion[i].length>0) {
+                                    for(Annotation getting : parametreNotion[i]){
+                                        if (getting instanceof Param) {
+                                            Param paramAnnotation = (Param) getting;
+                                            if(paramName.equalsIgnoreCase(paramAnnotation.value())){
+                                                Part part = request.getPart(paramName);
+                                                arguments[i] = part;
+                                            }
+    
+                                        }
+    
+                                    }                                
+                                }
+                                else if(typeParametre.size()!=parametreNotion[i].length) {
+                                    throw new Exception("ETU 002564 :les parametre doit etre annoter a @Param ");   
+                                }
+                                // else 
+                                // {
+                                //     arguments[i] = paramValue;
+                                //     // out.println(arguments[i]);
+                                // }   
                             }
                         }
                         
@@ -407,7 +456,7 @@ public class FrontController extends HttpServlet {
     
             } 
             else {
-                out.println("<h1>THE URL : " + requestUrl + " NOT EXIST</h1>");
+                response.sendError(404, "THE URL : " + requestUrl + " NOT EXIST");
             }            
         } catch (Exception e) {
             out.println(e);
