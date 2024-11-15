@@ -46,7 +46,6 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
-                    
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -159,7 +158,6 @@ public class FrontController extends HttpServlet {
                                     throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
                                     
                                 }
-                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                             
                             }else{
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),false);
@@ -441,6 +439,7 @@ public class FrontController extends HttpServlet {
                                     for(Annotation getting : parametreNotion[i]){
                                         if (getting instanceof Param) {
                                             Param paramAnnotation = (Param) getting;
+
                                             Part part = request.getPart(paramAnnotation.value());
                                             arguments[i] = part;
                                         
