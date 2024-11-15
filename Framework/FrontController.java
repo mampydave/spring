@@ -1,14 +1,21 @@
 package mg.itu.prom16.etu2564;
 import java.io.*;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
+import mg.itu.prom16.etu2564.Max;
+import mg.itu.prom16.etu2564.Min;
+import mg.itu.prom16.etu2564.Mydate;
+import mg.itu.prom16.etu2564.Myemail;
+import mg.itu.prom16.etu2564.Required;
 
 import java.lang.ModuleLayer.Controller;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.net.URL;
-
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
@@ -19,7 +26,7 @@ import com.google.gson.*;
 
 import javax.print.attribute.standard.RequestingUserName;
 
-
+@MultipartConfig
 public class FrontController extends HttpServlet { 
     Map<String, Mapping> hmap;
 
@@ -39,6 +46,7 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
+                    
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -67,7 +75,7 @@ public class FrontController extends HttpServlet {
                             for (int i = 0; i < arguments.length; i++) {
                                 Class<?> paramType = parameterTypes[i];
 
-                                if (paramType.isPrimitive() || paramType.equals(String.class)) {
+                                if (paramType.isPrimitive() || paramType.equals(String.class) || paramType.equals(Part.class)) {
                                                                 
                                     if (parametreAnnot[i].length>0) {
                                         for(Annotation getting : parametreAnnot[i]){
@@ -134,24 +142,24 @@ public class FrontController extends HttpServlet {
                                     
                                 }
                                 // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
-
                                 
                             }
                             // System.out.println(url +"Taille parame" + truest.getNbparam().size()+": "+truest.getNbparam());
 
+                            // hmap.put(url, truest);
                         
                         }
                         else{
                             if (method.isAnnotationPresent(Restapi.class)) {
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),true);                                
                                 verbact = new VerbAction(notionType,method.getName(),method.invoke(pris),true);
-
                                 Mapping newtruest = hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new HashSet<>()));
                                 
                                 if (!newtruest.getVerbActions().add(verbact)) {
                                     throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
                                     
                                 }
+                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                             
                             }else{
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),false);
@@ -163,6 +171,7 @@ public class FrontController extends HttpServlet {
                                     
                                 }
                                 // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+
                             }
 
                             // if (hmap.containsKey(url)) {
@@ -281,11 +290,13 @@ public class FrontController extends HttpServlet {
                             
                             if (parameterNames.hasMoreElements()) {
                                 paramName = parameterNames.nextElement();
-                            
+                                
+                                // List<String> paramList = Collections.list(parameterNames);
                                 knowObject=paramName.split("\\.");
-                                //out.println(paramName);
+                                // out.println(" dans la boucle parametre name: "+paramName+" l'indice' "+ i);
                                 //out.print(knowObject.length);
                                 //out.print(i);
+                                
                                 paramValue = request.getParameter(paramName);                                
                             }
 
@@ -296,6 +307,8 @@ public class FrontController extends HttpServlet {
                                     for(Annotation getting : parametreNotion[i]){
                                         if (getting instanceof Param) {
                                             Param paramAnnotation = (Param) getting;
+                                            // out.println("parametre name: "+paramName+" l'indice' "+ i +" element "+paramAnnotation.value());
+
                                             if(paramName.equalsIgnoreCase(paramAnnotation.value())){
                                                 arguments[i] = paramValue;
                                             }
@@ -323,10 +336,63 @@ public class FrontController extends HttpServlet {
                                 // out.println(makeMaj);
     
                                 Method[] listMethod=ObjectParam.getDeclaredMethods(); 
-                                                          
+                                Field[] listAttribut = ObjectParam.getDeclaredFields();
+                                
+                                
                                 for (int j = 0; j < listMethod.length; j++) {
                                     // out.println(listMethod[j].getName()+" = "+"set"+makeMaj +"indice j"+j +"<br>");
                                     if (listMethod[j].getName().equalsIgnoreCase("set"+makeMaj)) {
+                                        
+                                        Field trouverParRapportFormulaire=Mapping.trouverChamp(knowObject[1], listAttribut); 
+                                        Annotation[] annotations = trouverParRapportFormulaire.getAnnotations();
+
+                                        for (Annotation annotation : annotations) {
+                                            if (annotation instanceof Required) {
+                                                if (paramValue == null || paramValue.isEmpty()) {
+                                                    throw new Exception("Le champ " + trouverParRapportFormulaire.getName() + " est obligatoire !");
+                                                }
+                                                System.out.println(" - Annotation required " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+                                        
+                                            if (annotation instanceof Min) {
+                                                Min miniAnnote = (Min) annotation;
+                                                Number paramValueNumber = Mapping.convertToNumber(paramValue); 
+                                                
+                                                if (paramValueNumber.doubleValue() < miniAnnote.value()) {
+                                                    throw new Exception("La valeur doit être supérieure à : " + miniAnnote.value());
+                                                }
+                                                System.out.println(" - Annotation Min " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+                                            if (annotation instanceof Max) {
+                                                Max maxAnnote = (Max) annotation;
+                                                Number paramValueNumber = Mapping.convertToNumber(paramValue);
+
+                                                if (paramValueNumber.doubleValue() > maxAnnote.value()) {
+                                                    throw new Exception("La valeur doit être inférieure à : " + maxAnnote.value());
+                                                }
+                                            }
+                                            if (annotation instanceof Mydate) {
+                                                Mydate dateFormatAnnote = (Mydate) annotation;
+                                                String dateFormat = dateFormatAnnote.value();  
+                                        
+                                        
+                                                if (!Mapping.isValidDate(paramValue, dateFormat)) {
+                                                    throw new Exception("La date '" + paramValue + "' n'est pas valide au format : " + dateFormat);
+                                                }
+                                        
+                                                System.out.println(" - Annotation Mydate " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+
+                                            if (annotation instanceof Myemail) {
+                                                if (!Mapping.isValidEmail(paramValue)) {
+                                                    throw new Exception("L'email '" + paramValue + "' n'est pas valide.");
+                                                }
+                                        
+                                                System.out.println(" - Annotation MyEmail " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+                                        
+
+                                        }
                                         
                                         // out.println("nom method: "+listMethod[j].getName()+"\n");
                                         // out.println("a l'indice "+j);
@@ -337,6 +403,9 @@ public class FrontController extends HttpServlet {
                                             paramName = parameterNames.nextElement();
                                             knowObject=paramName.split("\\.");
                                             paramValue = request.getParameter(paramName);
+                                            
+
+
                                             if (knowObject.length>1) {
 
 
@@ -361,10 +430,33 @@ public class FrontController extends HttpServlet {
                             }
                             if (pyte[i].getName().equals(Mysession.class.getName())) {
                                 // out.println("session"); 
-
                                 HttpSession httpSession = request.getSession();
                                 Mysession session = new Mysession(httpSession);
                                 arguments[i] = session;   
+                            }
+                            if (pyte[i].equals(Part.class)) {
+                                
+                                                                
+                                if (parametreNotion[i].length>0) {
+                                    for(Annotation getting : parametreNotion[i]){
+                                        if (getting instanceof Param) {
+                                            Param paramAnnotation = (Param) getting;
+                                            Part part = request.getPart(paramAnnotation.value());
+                                            arguments[i] = part;
+                                        
+    
+                                        }
+    
+                                    }                                
+                                }
+                                else if(typeParametre.size()!=parametreNotion[i].length) {
+                                    throw new Exception("ETU 002564 :les parametre doit etre annoter a @Param ");   
+                                }
+                                // else 
+                                // {
+                                //     arguments[i] = paramValue;
+                                //     // out.println(arguments[i]);
+                                // }   
                             }
                         }
                         
