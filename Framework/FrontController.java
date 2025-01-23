@@ -10,6 +10,7 @@ import mg.itu.prom16.etu2564.Myemail;
 import mg.itu.prom16.etu2564.Required;
 import mg.itu.prom16.etu2564.ValidationResult;
 
+
 import java.lang.ModuleLayer.Controller;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
@@ -47,7 +48,6 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
-                    
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -299,14 +299,9 @@ public class FrontController extends HttpServlet {
                             if (parameterNames.hasMoreElements()) {
                                 paramName = parameterNames.nextElement();
                                 
-                                System.out.println("misy anaran "+ paramName);
-
                                 // List<String> paramList = Collections.list(parameterNames);
                                 knowObject=paramName.split("\\.");
-                                // out.println(" dans la boucle parametre name: "+paramName+" l'indice' "+ i);
-                                //out.print(knowObject.length);
-                                //out.print(i);
-
+                                
                                 
                                 paramValue = request.getParameter(paramName);                                
                             }
@@ -366,8 +361,6 @@ public class FrontController extends HttpServlet {
                                                     
                                                     error.add("champ obligatoire");
                                                     erreurofValidation.addError(trouverParRapportFormulaire.getName(), "champ obligatoire");
-
-                                                    // throw new Exception("Le champ " + trouverParRapportFormulaire.getName() + " est obligatoire !");
                                                 }
                                                 System.out.println(" - Annotation required " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
                                             }
@@ -377,12 +370,13 @@ public class FrontController extends HttpServlet {
                                                 Number paramValueNumber = Mapping.convertToNumber(paramValue); 
                                                 
                                                 if (paramValueNumber.doubleValue() < miniAnnote.value()) {
+
                                                     // erreurofValidation.addFieldValue(trouverParRapportFormulaire.getName(), paramValue);
                                                     error.add("La valeur doit être supérieure à : " + miniAnnote.value());
                                                     erreurofValidation.addError(trouverParRapportFormulaire.getName(), "La valeur doit être supérieure à : " + miniAnnote.value());
                                                     // throw new Exception("La valeur doit être supérieure à : " + miniAnnote.value());
                                                 }
-                                                // System.out.println(" - Annotation Min " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+
                                             }
                                             if (annotation instanceof Max) {
                                                 Max maxAnnote = (Max) annotation;
@@ -393,7 +387,6 @@ public class FrontController extends HttpServlet {
                                                     error.add("La valeur doit être inférieure à : " + maxAnnote.value());
                                                     erreurofValidation.addError(trouverParRapportFormulaire.getName(), "La valeur doit être inférieure à : " + maxAnnote.value());
 
-                                                    // throw new Exception("La valeur doit être inférieure à : " + maxAnnote.value());
                                                 }
                                             }
                                             if (annotation instanceof Mydate) {
@@ -409,7 +402,7 @@ public class FrontController extends HttpServlet {
                                                     // throw new Exception("La date '" + paramValue + "' n'est pas valide au format : " + dateFormat);
                                                 }
                                         
-                                                // System.out.println(" - Annotation Mydate " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+              
                                             }
 
                                             if (annotation instanceof Myemail) {
@@ -428,8 +421,7 @@ public class FrontController extends HttpServlet {
                                         if (error.size()!=0) {
                                             geterror.put(trouverParRapportFormulaire.getName(), error);                                            
                                         }
-                                        // out.println("nom method: "+listMethod[j].getName()+"\n");
-                                        // out.println("a l'indice "+j);
+
                                         listMethod[j].invoke(instanciate, paramValue);
     
     
