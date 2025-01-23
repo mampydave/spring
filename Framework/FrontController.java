@@ -3,13 +3,20 @@ import java.io.*;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
+import mg.itu.prom16.etu2564.Max;
+import mg.itu.prom16.etu2564.Min;
+import mg.itu.prom16.etu2564.Mydate;
+import mg.itu.prom16.etu2564.Myemail;
+import mg.itu.prom16.etu2564.Required;
+import mg.itu.prom16.etu2564.ValidationResult;
 
 import java.lang.ModuleLayer.Controller;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.net.URL;
-
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
@@ -40,7 +47,7 @@ public class FrontController extends HttpServlet {
                 Class<?> trouver = Class.forName(controller);
                 Method[] methods = trouver.getDeclaredMethods();
                 for (Method method : methods) {
-
+                    
                     String notionType="GET";   
                     Class<?>[] parameterTypes = method.getParameterTypes();
                     Parameter[] parameters = method.getParameters();
@@ -106,6 +113,8 @@ public class FrontController extends HttpServlet {
                                     arguments[i]=instanciate;
                                     paramNames.add(paramType.getName());
 
+                                }else if(paramType.equals(ValidationResult.class)){
+                                    paramNames.add(paramType.getName());
                                 }else if (paramType.equals(Mysession.class)) {
                                     // HttpSession httpSession1=new HttpSession();
                                     // Mysession sess=new Mysession();
@@ -136,7 +145,6 @@ public class FrontController extends HttpServlet {
                                     
                                 }
                                 // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
-
                                 
                             }
                             // System.out.println(url +"Taille parame" + truest.getNbparam().size()+": "+truest.getNbparam());
@@ -148,14 +156,13 @@ public class FrontController extends HttpServlet {
                             if (method.isAnnotationPresent(Restapi.class)) {
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),true);                                
                                 verbact = new VerbAction(notionType,method.getName(),method.invoke(pris),true);
-
                                 Mapping newtruest = hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new HashSet<>()));
                                 
                                 if (!newtruest.getVerbActions().add(verbact)) {
                                     throw new IllegalArgumentException("La notation \"" + notionType + "\" existe déjà pour l'URL \"" + url + " associer a la methode "+method.getName()+"\".");
                                     
                                 }
-
+                                // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
                             
                             }else{
                                 // truest = new Mapping(trouver.getName(), notionType,method.getName(),method.invoke(pris),false);
@@ -167,6 +174,7 @@ public class FrontController extends HttpServlet {
                                     
                                 }
                                 // hmap.computeIfAbsent(url, k -> new Mapping(trouver.getName(), new ArrayList<>())).getVerbActions().add(verbact);
+
                             }
 
                             // if (hmap.containsKey(url)) {
@@ -206,7 +214,11 @@ public class FrontController extends HttpServlet {
         // out.println(mapping.isEstRestapi()+"dave");
         // out.println("<body>");
         String methodFormul=request.getMethod();
+        Map<String, List<String>> geterror= new HashMap<>();
+        List<String> error = new ArrayList<>();
 
+        ValidationResult erreurofValidation = new ValidationResult();
+        System.out.println("first debug");
         try {
             VerbAction myVerbAction=new VerbAction();
 
@@ -220,7 +232,7 @@ public class FrontController extends HttpServlet {
                         myVerbAction = verbAction;
                     }
                 }
-                
+                System.out.println("verbaction : "+myVerbAction );                
                 mapping.getVerbActions().stream().forEach(element -> out.println(element));
                 if (myVerbAction.isEstRestapi()) {
                     response.setContentType("application/json;charset=UTF-8");
@@ -240,7 +252,7 @@ public class FrontController extends HttpServlet {
                 Enumeration<String> parameterNames = request.getParameterNames();
                 List<String> typeParametre= myVerbAction.getNbparam();
                 
-                
+                // System.out.println("nb parametre :"+ parameterNames);
                 // out.println("nenandalo");
                 // my session  en tant qu'attribut
 
@@ -269,6 +281,7 @@ public class FrontController extends HttpServlet {
 
                             } catch (ClassNotFoundException e) {
                                 out.println(e);
+
                                 pyte[i] = null;
                             }
                         }
@@ -285,11 +298,16 @@ public class FrontController extends HttpServlet {
                             
                             if (parameterNames.hasMoreElements()) {
                                 paramName = parameterNames.nextElement();
-                            
+                                
+                                System.out.println("misy anaran "+ paramName);
+
+                                // List<String> paramList = Collections.list(parameterNames);
                                 knowObject=paramName.split("\\.");
-                                //out.println(paramName);
+                                // out.println(" dans la boucle parametre name: "+paramName+" l'indice' "+ i);
                                 //out.print(knowObject.length);
                                 //out.print(i);
+
+                                
                                 paramValue = request.getParameter(paramName);                                
                             }
 
@@ -300,6 +318,8 @@ public class FrontController extends HttpServlet {
                                     for(Annotation getting : parametreNotion[i]){
                                         if (getting instanceof Param) {
                                             Param paramAnnotation = (Param) getting;
+                                            // out.println("parametre name: "+paramName+" l'indice' "+ i +" element "+paramAnnotation.value());
+
                                             if(paramName.equalsIgnoreCase(paramAnnotation.value())){
                                                 arguments[i] = paramValue;
                                             }
@@ -319,7 +339,7 @@ public class FrontController extends HttpServlet {
                                 
                             }
                             else if(!pyte[i].isPrimitive() && !pyte[i].equals(String.class) && knowObject.length>1){
-                                
+                                // out.println("here");
                                     
                                 Class<?> ObjectParam=Class.forName(typeParametre.get(i));
                                 Object instanciate=ObjectParam.getDeclaredConstructor().newInstance();
@@ -327,11 +347,87 @@ public class FrontController extends HttpServlet {
                                 // out.println(makeMaj);
     
                                 Method[] listMethod=ObjectParam.getDeclaredMethods(); 
-                                                          
+                                Field[] listAttribut = ObjectParam.getDeclaredFields();
+                                
+                                
                                 for (int j = 0; j < listMethod.length; j++) {
+                                    out.println(knowObject[1] +": " + paramValue);
+                                    System.out.println(knowObject[1] +": " + paramValue);
+                                    erreurofValidation.addFieldValue(knowObject[1], paramValue);
                                     // out.println(listMethod[j].getName()+" = "+"set"+makeMaj +"indice j"+j +"<br>");
                                     if (listMethod[j].getName().equalsIgnoreCase("set"+makeMaj)) {
                                         
+                                        Field trouverParRapportFormulaire=Mapping.trouverChamp(knowObject[1], listAttribut); 
+                                        Annotation[] annotations = trouverParRapportFormulaire.getAnnotations();
+
+                                        for (Annotation annotation : annotations) {
+                                            if (annotation instanceof Required) {
+                                                if (paramValue == null || paramValue.isEmpty()) {
+                                                    
+                                                    error.add("champ obligatoire");
+                                                    erreurofValidation.addError(trouverParRapportFormulaire.getName(), "champ obligatoire");
+
+                                                    // throw new Exception("Le champ " + trouverParRapportFormulaire.getName() + " est obligatoire !");
+                                                }
+                                                System.out.println(" - Annotation required " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+                                        
+                                            if (annotation instanceof Min) {
+                                                Min miniAnnote = (Min) annotation;
+                                                Number paramValueNumber = Mapping.convertToNumber(paramValue); 
+                                                
+                                                if (paramValueNumber.doubleValue() < miniAnnote.value()) {
+                                                    // erreurofValidation.addFieldValue(trouverParRapportFormulaire.getName(), paramValue);
+                                                    error.add("La valeur doit être supérieure à : " + miniAnnote.value());
+                                                    erreurofValidation.addError(trouverParRapportFormulaire.getName(), "La valeur doit être supérieure à : " + miniAnnote.value());
+                                                    // throw new Exception("La valeur doit être supérieure à : " + miniAnnote.value());
+                                                }
+                                                // System.out.println(" - Annotation Min " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+                                            if (annotation instanceof Max) {
+                                                Max maxAnnote = (Max) annotation;
+                                                Number paramValueNumber = Mapping.convertToNumber(paramValue);
+
+                                                if (paramValueNumber.doubleValue() > maxAnnote.value()) {
+                                                    // erreurofValidation.addFieldValue(trouverParRapportFormulaire.getName(), paramValue);
+                                                    error.add("La valeur doit être inférieure à : " + maxAnnote.value());
+                                                    erreurofValidation.addError(trouverParRapportFormulaire.getName(), "La valeur doit être inférieure à : " + maxAnnote.value());
+
+                                                    // throw new Exception("La valeur doit être inférieure à : " + maxAnnote.value());
+                                                }
+                                            }
+                                            if (annotation instanceof Mydate) {
+                                                Mydate dateFormatAnnote = (Mydate) annotation;
+                                                String dateFormat = dateFormatAnnote.value();  
+                                        
+                                        
+                                                if (!Mapping.isValidDate(paramValue, dateFormat)) {
+                                                    // erreurofValidation.addFieldValue(trouverParRapportFormulaire.getName(), paramValue);
+                                                    error.add("Format invalide, attendu : " + dateFormat);
+                                                    erreurofValidation.addError(trouverParRapportFormulaire.getName(), "Format invalide, attendu : " + dateFormat);
+
+                                                    // throw new Exception("La date '" + paramValue + "' n'est pas valide au format : " + dateFormat);
+                                                }
+                                        
+                                                // System.out.println(" - Annotation Mydate " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+
+                                            if (annotation instanceof Myemail) {
+                                                if (!Mapping.isValidEmail(paramValue)) {
+                                                    // erreurofValidation.addFieldValue(trouverParRapportFormulaire.getName(), paramValue);
+                                                    error.add("invalid email");
+                                                    erreurofValidation.addError(trouverParRapportFormulaire.getName(), "invalid email");
+                                                    // throw new Exception("L'email '" + paramValue + "' n'est pas valide.");
+                                                }
+                                        
+                                                // System.out.println(" - Annotation MyEmail " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
+                                            }
+                                        
+
+                                        }
+                                        if (error.size()!=0) {
+                                            geterror.put(trouverParRapportFormulaire.getName(), error);                                            
+                                        }
                                         // out.println("nom method: "+listMethod[j].getName()+"\n");
                                         // out.println("a l'indice "+j);
                                         listMethod[j].invoke(instanciate, paramValue);
@@ -341,6 +437,9 @@ public class FrontController extends HttpServlet {
                                             paramName = parameterNames.nextElement();
                                             knowObject=paramName.split("\\.");
                                             paramValue = request.getParameter(paramName);
+                                            
+
+
                                             if (knowObject.length>1) {
 
 
@@ -361,8 +460,19 @@ public class FrontController extends HttpServlet {
                                     // out.println("in emp: "+makeMaj+"\n");
                             
                                 }
+                                
+                                // if (geterror != null && !geterror.isEmpty()) {
+                                //     request.setAttribute("error", geterror);
+                                //     // Dispatcher vers une page JSP
+                                //     request.getRequestDispatcher("/except.jsp").forward(request, response);
+                                // }
                                 arguments[i]=instanciate;
                             }
+
+                            if (pyte[i].getName().equals(ValidationResult.class.getName())) {
+                                arguments[i] = erreurofValidation;
+                            }
+
                             if (pyte[i].getName().equals(Mysession.class.getName())) {
                                 // out.println("session"); 
                                 HttpSession httpSession = request.getSession();
@@ -376,10 +486,9 @@ public class FrontController extends HttpServlet {
                                     for(Annotation getting : parametreNotion[i]){
                                         if (getting instanceof Param) {
                                             Param paramAnnotation = (Param) getting;
-                                            if(paramName.equalsIgnoreCase(paramAnnotation.value())){
-                                                Part part = request.getPart(paramName);
-                                                arguments[i] = part;
-                                            }
+                                            Part part = request.getPart(paramAnnotation.value());
+                                            arguments[i] = part;
+                                        
     
                                         }
     
@@ -441,6 +550,7 @@ public class FrontController extends HttpServlet {
                             request.setAttribute(key,data.get(key));
                         }
         
+
                         // int lastIndex = url.lastIndexOf("/");
                         // url = url.substring(0, lastIndex) + url.substring(lastIndex + 1, url.lastIndexOf("."));
                         // url = reference.substring(0, reference.lastIndexOf("/")) + url;
@@ -448,8 +558,9 @@ public class FrontController extends HttpServlet {
                         // int lastSlashIndex = reference.lastIndexOf("/");
                         // int secondLastSlashIndex = reference.lastIndexOf("/", lastSlashIndex - 1);
                         // url = reference.substring(0, secondLastSlashIndex + 1)+url;
-                        RequestDispatcher dispatcher = request.getRequestDispatcher(url);
-                        dispatcher.forward(request, response);
+                        request = new Wrapper(request, "GET");
+                        request.getRequestDispatcher(url).forward(request, response);
+
                     }else {
                         throw new Exception("invalide retour ou type de retour est non reconue");
                     }
@@ -460,7 +571,8 @@ public class FrontController extends HttpServlet {
                 response.sendError(404, "THE URL : " + requestUrl + " NOT EXIST");
             }            
         } catch (Exception e) {
-            out.println(e);
+            // out.println(e);
+            e.printStackTrace();
         }
 
         // out.println("</body>");
