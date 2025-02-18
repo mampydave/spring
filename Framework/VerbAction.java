@@ -8,6 +8,8 @@ public class VerbAction {
     private Object valeur;
     private boolean estRestapi;
     private List<String> nbparam;
+    private List<String> roles;
+
     @Override
     public boolean equals(Object obj) {
         // Vérifie si l'objet est de la même classe
@@ -38,7 +40,20 @@ public class VerbAction {
         this.valeur = valeur;
         this.estRestapi = estRestapi;
     }
-
+    public VerbAction(String annotateType, String methodName, Object valeur, boolean estRestapi,List<String> roles) {
+        this.annotateType = annotateType;
+        this.methodName = methodName;
+        this.valeur = valeur;
+        this.estRestapi = estRestapi;
+        this.roles = roles;
+    }
+    public VerbAction(String annotateType, String methodName, List<String> nbparam, boolean estRestapi,List<String> roles) {
+        this.annotateType = annotateType;
+        this.methodName = methodName;
+        this.nbparam = nbparam;
+        this.estRestapi = estRestapi;
+        this.roles = roles;
+    }
     public String getAnnotateType() {
         return annotateType;
     }
@@ -68,6 +83,14 @@ public class VerbAction {
     }
     public void setNbparam(List<String> nbparam) {
         this.nbparam = nbparam;
+    }
+
+    public List<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
     }
 
     
