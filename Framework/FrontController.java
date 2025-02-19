@@ -120,12 +120,18 @@ public class FrontController extends HttpServlet {
                                     // System.out.println("nanadalo ato @ l bloc noon primitive :"+paramType.getName()+": "+instanciate);
                                     arguments[i]=instanciate;
                                     paramNames.add(paramType.getName());
+                                }else if(paramType.equals(HttpServletRequest.class)){
+                                    // System.out.println("instanciation : "+ paramType);
+                                    paramNames.add(paramType.getName());   
+                                }
+                                else if(paramType.equals(ValidationResult.class)){
 
                                 }else if(paramType.equals(HttpServletRequest.class)){
                                     // System.out.println("instanciation : "+ paramType);
                                     paramNames.add(paramType.getName());   
                                 }
                                 else if(paramType.equals(ValidationResult.class)){
+
                                     paramNames.add(paramType.getName());
                                 }else if (paramType.equals(Mysession.class)) {
                                     // HttpSession httpSession1=new HttpSession();
@@ -230,7 +236,6 @@ public class FrontController extends HttpServlet {
         List<String> error = new ArrayList<>();
 
         ValidationResult erreurofValidation = new ValidationResult();
-        
         try {
             VerbAction myVerbAction=new VerbAction();
 
@@ -273,7 +278,6 @@ public class FrontController extends HttpServlet {
                         myVerbAction = verbAction;
                     }
                 }
-           
                 mapping.getVerbActions().stream().forEach(element -> out.println(element));
                 if (myVerbAction.isEstRestapi()) {
                     response.setContentType("application/json;charset=UTF-8");
@@ -311,13 +315,11 @@ public class FrontController extends HttpServlet {
     
                 }
 
-
                 Method method;
                 Object result;
                 Enumeration<String> parameterNames = request.getParameterNames();
                 List<String> typeParametre= myVerbAction.getNbparam();
                 
-                // System.out.println("nb parametre :"+ parameterNames.hasMoreElements());
                 // out.println("nenandalo");
 
                 for (Field field : newc.getDeclaredFields()) {
@@ -367,10 +369,6 @@ public class FrontController extends HttpServlet {
 
                                 // List<String> paramList = Collections.list(parameterNames);
                                 knowObject=paramName.split("\\.");
-                                // out.println(" dans la boucle parametre name: "+paramName+" l'indice' "+ i);
-                                //out.print(knowObject.length);
-                                //out.print(i);
-
                                 
                                 paramValue = request.getParameter(paramName);                                
                             }
@@ -415,7 +413,6 @@ public class FrontController extends HttpServlet {
                                 
                                 
                                 for (int j = 0; j < listMethod.length; j++) {
-                                    // out.println(knowObject[1] +": " + paramValue);
                                     System.out.println(knowObject[1] +": " + paramValue);
                                     erreurofValidation.addFieldValue(knowObject[1], paramValue);
                                     // out.println(listMethod[j].getName()+" = "+"set"+makeMaj +"indice j"+j +"<br>");
@@ -446,7 +443,6 @@ public class FrontController extends HttpServlet {
                                                     erreurofValidation.addError(trouverParRapportFormulaire.getName(), "La valeur doit être supérieure à : " + miniAnnote.value());
                                                     // throw new Exception("La valeur doit être supérieure à : " + miniAnnote.value());
                                                 }
-                                                // System.out.println(" - Annotation Min " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
                                             }
                                             if (annotation instanceof Max) {
                                                 Max maxAnnote = (Max) annotation;
@@ -473,7 +469,6 @@ public class FrontController extends HttpServlet {
                                                     // throw new Exception("La date '" + paramValue + "' n'est pas valide au format : " + dateFormat);
                                                 }
                                         
-                                                // System.out.println(" - Annotation Mydate " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
                                             }
 
                                             if (annotation instanceof Myemail) {
@@ -492,8 +487,6 @@ public class FrontController extends HttpServlet {
                                         if (error.size()!=0) {
                                             geterror.put(trouverParRapportFormulaire.getName(), error);                                            
                                         }
-                                        // out.println("nom method: "+listMethod[j].getName()+"\n");
-                                        // out.println("a l'indice "+j);
                                         listMethod[j].invoke(instanciate, paramValue);
     
     
