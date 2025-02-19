@@ -126,6 +126,12 @@ public class FrontController extends HttpServlet {
                                 }
                                 else if(paramType.equals(ValidationResult.class)){
 
+                                }else if(paramType.equals(HttpServletRequest.class)){
+                                    // System.out.println("instanciation : "+ paramType);
+                                    paramNames.add(paramType.getName());   
+                                }
+                                else if(paramType.equals(ValidationResult.class)){
+
                                     paramNames.add(paramType.getName());
                                 }else if (paramType.equals(Mysession.class)) {
                                     // HttpSession httpSession1=new HttpSession();
@@ -230,11 +236,39 @@ public class FrontController extends HttpServlet {
         List<String> error = new ArrayList<>();
 
         ValidationResult erreurofValidation = new ValidationResult();
-
         try {
             VerbAction myVerbAction=new VerbAction();
 
             if (mapping != null) {
+                Class<?> newc=Class.forName(mapping.getClassName());
+                Object controller=newc.getDeclaredConstructor().newInstance();
+
+                if (newc.isAnnotationPresent(Roles.class)) {
+                    Roles authorizedPersonne = (Roles) newc.getAnnotation(Roles.class);
+                    String[] roleAuthorized = authorizedPersonne.value();
+                    String accessAuthorized = "none";
+                    
+                    HttpSession session = request.getSession();
+                    ArrayList<Object> userInfo = (ArrayList<Object>) session.getAttribute("userInfo");
+
+                    if (userInfo != null) {
+                        boolean isAuthentified = (boolean) userInfo.get(0);
+                        String role = (String) userInfo.get(1);
+                        for (int ri = 0; ri < roleAuthorized.length; ri++) {
+                            if (role.equalsIgnoreCase(roleAuthorized[ri])) {
+                                accessAuthorized = role;
+                                break;
+                            }else{
+                                accessAuthorized = roleAuthorized[ri];
+                            }                          
+                        }
+                        if (!accessAuthorized.equalsIgnoreCase(role)) {
+                            response.sendError(405,"Acces seulement reserver aux : "+ accessAuthorized +" alors que vous etes un : " +role);                            
+                        }
+                    }else {
+                        response.sendError(405,"L'utilisateur doit etre connecter pour acceder a cette url");
+                    }
+                }
 
                 for (VerbAction verbAction : mapping.getVerbActions()) {
                      if (verbAction.getAnnotateType().equalsIgnoreCase(methodFormul)) {
@@ -281,8 +315,6 @@ public class FrontController extends HttpServlet {
     
                 }
 
-                Class<?> newc=Class.forName(mapping.getClassName());
-                Object controller=newc.getDeclaredConstructor().newInstance();
                 Method method;
                 Object result;
                 Enumeration<String> parameterNames = request.getParameterNames();
@@ -395,6 +427,8 @@ public class FrontController extends HttpServlet {
                                                     
                                                     error.add("champ obligatoire");
                                                     erreurofValidation.addError(trouverParRapportFormulaire.getName(), "champ obligatoire");
+
+                                                    // throw new Exception("Le champ " + trouverParRapportFormulaire.getName() + " est obligatoire !");
                                                 }
                                                 System.out.println(" - Annotation required " + trouverParRapportFormulaire.getName() + ": " + annotation.annotationType().getSimpleName());
                                             }
@@ -419,6 +453,7 @@ public class FrontController extends HttpServlet {
                                                     error.add("La valeur doit être inférieure à : " + maxAnnote.value());
                                                     erreurofValidation.addError(trouverParRapportFormulaire.getName(), "La valeur doit être inférieure à : " + maxAnnote.value());
 
+                                                    // throw new Exception("La valeur doit être inférieure à : " + maxAnnote.value());
                                                 }
                                             }
                                             if (annotation instanceof Mydate) {
@@ -460,8 +495,6 @@ public class FrontController extends HttpServlet {
                                             knowObject=paramName.split("\\.");
                                             paramValue = request.getParameter(paramName);
                                             
-
-
                                             if (knowObject.length>1) {
 
 
